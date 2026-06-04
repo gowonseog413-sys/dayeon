@@ -1,0 +1,93 @@
+name: Slack push notify
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify # dayeon-동생사이트
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMPARE_URL: ${{ github.event.compare }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL secret is not set. Run setup-slack-github.ps1"
+            exit 0
+          fi
+
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          COMMIT_URL="https://github.com/${REPO}/commit/${COMMIT_SHA}"
+          MSG=$(printf '%s' "$COMMIT_MSG" | head -c 500)
+
+          python3 <<'PY'
+          import json, os, urllib.request
+
+          repo = os.environ["REPO"]
+          branch = os.environ["BRANCH"]
+          actor = os.environ["ACTOR"]
+          msg = os.environ["COMMIT_MSG"]
+          short_sha = os.environ["COMMIT_SHA"][:7]
+          commit_url = f"https://github.com/{repo}/commit/{os.environ['COMMIT_SHA']}"
+          compare_url = os.environ.get("COMPARE_URL") or commit_url
+
+          payload = {
+              "text": f"[5 · dayeon] Git push · {repo} ({branch})",
+              "blocks": [
+                  {
+                      "type": "section",
+                      "text": {
+                          "type": "mrkdwn",
+                          "text": (
+                              "*TBP (더행복한사람들)* · 카테고리 `5 · dayeon` · "
+                              "# dayeon-동생사이트"
+                          ),
+                      },
+                  },
+                  {
+                      "type": "section",
+                      "text": {
+                          "type": "mrkdwn",
+                          "text": (
+                              f"*dayeon 동생사이트 · Git push*\n"
+                              f"<{compare_url}|변경 보기> · `{short_sha}`"
+                          ),
+                      },
+                  },
+                  {
+                      "type": "section",
+                      "fields": [
+                          {"type": "mrkdwn", "text": f"*저장소*\n`{repo}`"},
+                          {"type": "mrkdwn", "text": f"*브랜치*\n`{branch}`"},
+                          {"type": "mrkdwn", "text": f"*작성자*\n{actor}"},
+                          {
+                              "type": "mrkdwn",
+                              "text": f"*커밋*\n<{commit_url}|{short_sha}>",
+                          },
+                      ],
+                  },
+                  {
+                      "type": "section",
+                      "text": {"type": "mrkdwn", "text": f"*메시지*\n```{msg}```"},
+                  },
+              ],
+          }
+
+          req = urllib.request.Request(
+              os.environ["SLACK_WEBHOOK_URL"],
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as res:
+              body = res.read().decode()
+              if res.status != 200 or body != "ok":
+                  raise SystemExit(f"Slack webhook failed: {res.status} {body}")
+          PY
