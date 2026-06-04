@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+:root {
+  --pink-bg: #fce8ef;
+  --pink-accent: #e91e8c;
+  --pink-soft: #f8b4d4;
+  --text: #1a1a1a;
+  --muted: #6b7280;
+}
+
+body {
+  color: var(--text);
+  background: #fff;
+  font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+}
+
+.font-serif-logo {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.08em;
+}

@@ -31,6 +31,9 @@ yarn-error.log*
 # env files
 .env*.local
 
+# shop api db
+shop-api/data/db.json
+
 # vercel
 .vercel
 

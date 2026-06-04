@@ -8,6 +8,11 @@
     "start": "npm run start --prefix dayeon-web",
     "lint": "npm run lint --prefix dayeon-web",
     "install:web": "npm install --prefix dayeon-web",
-    "setup": "npm install --prefix dayeon-web"
+    "setup": "npm install --prefix dayeon-web",
+    "shop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./start-shop.ps1",
+    "shop:api": "npm run dev --prefix shop-api",
+    "shop:web": "npm run dev --prefix shop-web",
+    "shop:seed": "npm run seed --prefix shop-api",
+    "shop:install": "npm install --prefix shop-api && npm install --prefix shop-web"
   }
 }

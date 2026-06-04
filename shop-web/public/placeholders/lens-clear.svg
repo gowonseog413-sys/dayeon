@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500">
+  <rect width="400" height="500" fill="#f8fafc"/>
+  <circle cx="200" cy="220" r="70" fill="none" stroke="#cbd5e1" stroke-width="4"/>
+  <text x="200" y="420" text-anchor="middle" fill="#64748b" font-family="sans-serif" font-size="18">Clear Lens</text>
+</svg>
