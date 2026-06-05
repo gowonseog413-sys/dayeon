@@ -60,7 +60,7 @@ export function LanguageSwitcher({ placement = "footer" }: Props) {
         <ul
           role="listbox"
           className={`absolute left-0 z-50 min-w-full overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl ${
-            inDrawer ? "top-full mt-2" : "bottom-full mb-2"
+            placement === "drawer" ? "top-full mt-2" : "bottom-full mb-2"
           }`}
         >
           {DROPDOWN_LOCALES.map((item) => (
