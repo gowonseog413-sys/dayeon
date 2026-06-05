@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "dayeon-3856e"
+  },
+  "targets": {
+    "dayeon-3856e": {
+      "hosting": {
+        "main": ["dayeon-3856e"],
+        "shop": ["dayeon-shop"]
+      }
+    }
   }
 }

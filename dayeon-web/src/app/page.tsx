@@ -73,6 +73,12 @@ export default function Home() {
             Firebase와 Slack이 연결된 dayeon 프로젝트입니다. 메시지를 보내면
             Firestore에 저장되고 Slack 채널로 알림이 전달됩니다.
           </p>
+          <a
+            href="http://localhost:3010"
+            className="inline-flex rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800"
+          >
+            EYESIGHT 쇼핑몰 초안 보기 → (localhost:3010)
+          </a>
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2">

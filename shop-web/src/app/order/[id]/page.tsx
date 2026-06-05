@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
+import { orderPaymentLabel } from "@/lib/payment-methods";
 import type { Order } from "@/lib/types";
 
 export default function OrderCompletePage() {
@@ -35,9 +36,13 @@ export default function OrderCompletePage() {
         {formatRp(order.total)}
       </p>
       <p className="mt-2 text-sm text-gray-500">
-        결제: {order.paymentMethod === "cod" ? "착불 (COD)" : "무통장 입금"} ·{" "}
-        {order.paymentStatus === "paid" ? "결제 완료" : "입금 대기"}
+        결제: {orderPaymentLabel(order.paymentMethod)}
+        {order.paymentLabel ? ` (${order.paymentLabel})` : ""} ·{" "}
+        {order.paymentStatus === "paid" ? "결제 완료" : "결제 대기"}
       </p>
+      {order.jubelioCode && (
+        <p className="mt-1 text-xs text-gray-400">Jubelio 채널: {order.jubelioCode}</p>
+      )}
       {order.shipping && (
         <div className="mt-8 rounded-xl border border-gray-100 bg-gray-50 p-4 text-left text-sm">
           <p className="font-medium">배송지</p>
@@ -49,6 +54,16 @@ export default function OrderCompletePage() {
             {order.shipping.city ? `, ${order.shipping.city}` : ""}
           </p>
         </div>
+      )}
+      {order.paymentMethod === "virtual_account" && (
+        <p className="mt-4 rounded-lg bg-[var(--pink-bg)] p-3 text-xs text-gray-700">
+          가상계좌 번호는 Jubelio에서 발급됩니다. 입금 확인 후 주문이 확정됩니다.
+        </p>
+      )}
+      {order.paymentMethod === "gopay" && (
+        <p className="mt-4 rounded-lg bg-[var(--pink-bg)] p-3 text-xs text-gray-700">
+          GoPay 앱에서 결제 링크/QR을 확인해 주세요. 충전 잔액으로 결제됩니다.
+        </p>
       )}
       {order.paymentMethod === "bank_transfer" && (
         <p className="mt-4 rounded-lg bg-[var(--pink-bg)] p-3 text-xs text-gray-700">

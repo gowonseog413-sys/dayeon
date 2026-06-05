@@ -1,20 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { api } from "@/lib/api";
+import { OAUTH_ERRORS } from "@/lib/oauth";
+import { mergeCartOnLogin } from "@/lib/cart-store";
 import { saveSession } from "@/lib/auth-store";
 import type { User } from "@/lib/types";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get("next") || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const oauthError = searchParams.get("error");
+  const oauthMessage = oauthError ? OAUTH_ERRORS[oauthError] || oauthError : "";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,12 +30,14 @@ export function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
       saveSession(data.token, data.user);
-      router.push(
+      await mergeCartOnLogin(data.token);
+      const dest =
         data.user.role === "admin" && !nextUrl.startsWith("/checkout")
           ? "/erp"
-          : nextUrl,
-      );
-      router.refresh();
+          : nextUrl.startsWith("/login")
+            ? "/profile"
+            : nextUrl;
+      window.location.href = dest;
     } catch (err) {
       setError(err instanceof Error ? err.message : "로그인 실패");
     } finally {
@@ -41,8 +47,16 @@ export function LoginForm() {
 
   return (
     <>
+      <SocialLoginButtons nextPath={nextUrl} />
+      <div className="my-6 flex items-center gap-3 text-xs text-gray-400">
+        <span className="h-px flex-1 bg-gray-200" />
+        또는 이메일로 로그인
+        <span className="h-px flex-1 bg-gray-200" />
+      </div>
       <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-gray-100 p-6 shadow-sm">
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {(error || oauthMessage) && (
+          <p className="text-sm text-red-600">{error || oauthMessage}</p>
+        )}
         <label className="block text-sm">
           Email*
           <input

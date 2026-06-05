@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { api } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import type { Order } from "@/lib/types";
@@ -28,14 +29,13 @@ export default function ErpOrdersPage() {
   }
 
   return (
-    <div>
-      <h2 className="mb-6 text-xl font-semibold">주문 관리</h2>
+    <ErpPageShell title="주문 관리">
       {orders.length === 0 ? (
         <p className="text-sm text-gray-500">주문이 없습니다.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-2">
           {orders.map((o) => (
-            <li key={o.id} className="rounded-xl border bg-white p-4 text-sm">
+            <li key={o.id} className="rounded-xl border bg-white p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>{new Date(o.createdAt).toLocaleString("ko-KR")}</span>
                 <span className="font-medium">Rp {o.total.toLocaleString()}</span>
@@ -82,6 +82,6 @@ export default function ErpOrdersPage() {
           ))}
         </ul>
       )}
-    </div>
+    </ErpPageShell>
   );
 }

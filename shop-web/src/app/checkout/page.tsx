@@ -1,16 +1,24 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { getCart, saveCart } from "@/lib/cart-store";
+import {
+  profileSummary,
+  type PaymentChannel,
+  type PaymentProfile,
+} from "@/lib/payment-methods";
 import type { CartItem, Order, Product } from "@/lib/types";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [lines, setLines] = useState<(CartItem & { product: Product })[]>([]);
+  const [channels, setChannels] = useState<PaymentChannel[]>([]);
+  const [profiles, setProfiles] = useState<PaymentProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -18,7 +26,8 @@ export default function CheckoutPage() {
     address: "",
     city: "Jakarta",
     postalCode: "",
-    paymentMethod: "bank_transfer",
+    paymentMethod: "credit_card",
+    paymentProfileId: "",
   });
 
   useEffect(() => {
@@ -32,16 +41,29 @@ export default function CheckoutPage() {
       router.replace("/bag");
       return;
     }
-    api<{ products: Product[] }>("/api/products")
-      .then(({ products }) => {
+    Promise.all([
+      api<{ products: Product[] }>("/api/products"),
+      api<{ channels: PaymentChannel[] }>("/api/payment-methods"),
+      api<{ profiles: PaymentProfile[] }>("/api/payment-profiles", { token }),
+    ])
+      .then(([productsRes, channelsRes, profilesRes]) => {
         setLines(
           cart
             .map((c) => {
-              const product = products.find((p) => p.id === c.productId);
+              const product = productsRes.products.find((p) => p.id === c.productId);
               return product ? { ...c, product } : null;
             })
             .filter(Boolean) as (CartItem & { product: Product })[],
         );
+        setChannels(channelsRes.channels);
+        setProfiles(profilesRes.profiles);
+        const defaultProfile = profilesRes.profiles.find((p) => p.isDefault);
+        const firstChannel = channelsRes.channels[0]?.type || "credit_card";
+        setForm((f) => ({
+          ...f,
+          paymentMethod: defaultProfile?.channelType || firstChannel,
+          paymentProfileId: defaultProfile?.id || "",
+        }));
       })
       .catch(() => router.replace("/bag"));
   }, [router]);
@@ -64,6 +86,7 @@ export default function CheckoutPage() {
           })),
           shipping: form,
           paymentMethod: form.paymentMethod,
+          paymentProfileId: form.paymentProfileId || undefined,
         }),
       });
       saveCart([]);
@@ -102,29 +125,71 @@ export default function CheckoutPage() {
               />
             </label>
           ))}
-          <h2 className="pt-4 font-medium">결제 방법</h2>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              checked={form.paymentMethod === "bank_transfer"}
-              onChange={() => setForm({ ...form, paymentMethod: "bank_transfer" })}
-            />
-            무통장 입금 (입금 확인 후 발송)
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              checked={form.paymentMethod === "cod"}
-              onChange={() => setForm({ ...form, paymentMethod: "cod" })}
-            />
-            착불 (COD)
-          </label>
+          <h2 className="pt-4 font-medium">결제 방법 (Jubelio 연동)</h2>
+          <div className="space-y-2">
+            {channels.map((ch) => (
+              <label
+                key={ch.id}
+                className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-100 px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                <input
+                  type="radio"
+                  className="mt-1"
+                  checked={form.paymentMethod === ch.type}
+                  onChange={() =>
+                    setForm({
+                      ...form,
+                      paymentMethod: ch.type,
+                      paymentProfileId:
+                        profiles.find((p) => p.channelType === ch.type && p.isDefault)?.id ||
+                        profiles.find((p) => p.channelType === ch.type)?.id ||
+                        "",
+                    })
+                  }
+                />
+                <span>
+                  <span className="font-medium">{ch.nameKo}</span>
+                  <span className="mt-0.5 block text-xs text-gray-500">{ch.descriptionKo}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {profiles.length > 0 && (
+            <label className="mt-3 block text-sm">
+              저장된 결제수단
+              <select
+                value={form.paymentProfileId}
+                onChange={(e) => {
+                  const p = profiles.find((x) => x.id === e.target.value);
+                  setForm({
+                    ...form,
+                    paymentProfileId: e.target.value,
+                    paymentMethod: p?.channelType || form.paymentMethod,
+                  });
+                }}
+                className="mt-1 w-full rounded border border-gray-200 px-3 py-2"
+              >
+                <option value="">직접 선택 (저장 수단 없음)</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label} — {profileSummary(p)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <p className="text-xs text-gray-400">
+            <Link href="/profile/payment" className="text-[var(--pink-accent)] hover:underline">
+              결제수단관리
+            </Link>
+            에서 카드·GoPay·가상계좌를 미리 등록할 수 있습니다.
+          </p>
         </div>
         <div className="rounded-xl border border-gray-100 bg-gray-50 p-6">
           <h2 className="mb-4 font-medium">주문 요약</h2>
           <ul className="space-y-3 text-sm">
             {lines.map((l) => (
-              <li key={l.productId} className="flex gap-3">
+              <li key={l.id} className="flex gap-3">
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded bg-white">
                   <Image src={l.product.image} alt="" fill className="object-cover" />
                 </div>

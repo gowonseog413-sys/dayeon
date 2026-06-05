@@ -3,27 +3,74 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getStoredUser } from "@/lib/auth-store";
+import { useI18n } from "@/components/I18nProvider";
+import type { CategoryTreeNode } from "@/lib/product-catalog-store";
+import {
+  isMegaMenuMain,
+  treeMainToMegaItems,
+  treeMainToSimpleItems,
+  useShopCatalog,
+} from "@/lib/use-shop-catalog";
+import { useAuth } from "@/hooks/useAuth";
 import { cartCount } from "@/lib/cart-store";
-import type { User } from "@/lib/types";
-
-const NAV = [
-  { href: "/?section=contact-lenses", label: "콘택트렌즈" },
-  { href: "/?section=accessories", label: "렌즈 액세서리" },
-  { href: "/?section=best-seller", label: "신규 도착" },
-  { href: "/?section=bundles", label: "번들" },
-  { href: "/?section=bloominc", label: "블루밍크" },
-  { href: "#", label: "기사" },
-];
+import { DayeonLogo } from "@/components/DayeonLogo";
+import { NavMegaMenu } from "@/components/NavMegaMenu";
+import { NavSimpleDropdown } from "@/components/NavSimpleDropdown";
+import { IconBag, IconSearch, IconUser } from "@/components/CleanIcons";
+import { IconBagID, IconUserID } from "@/components/IndonesiaIcons";
+import { useTheme } from "@/components/ThemeProvider";
+import { isIndonesiaTheme, isMinimalTheme } from "@/lib/theme";
+import { NavHeartDivider } from "@/components/SparkleHeart";
+import { MobileNavDrawer } from "@/components/MobileNavDrawer";
+import { honorificName } from "@/lib/user-display";
+import { navItemLinkClass } from "@/lib/nav-item-class";
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  if (pathname.startsWith("/erp")) return null;
+  return <SiteHeaderInner />;
+}
+
+function ShopNavMain({
+  main,
+  isClean,
+  navLinkClass,
+}: {
+  main: CategoryTreeNode;
+  isClean: boolean;
+  navLinkClass: string;
+}) {
+  if (isMegaMenuMain(main)) {
+    return (
+      <NavMegaMenu label={main.label} items={treeMainToMegaItems(main)} isClean={isClean} />
+    );
+  }
+  if (main.children && main.children.length > 0) {
+    return (
+      <NavSimpleDropdown label={main.label} items={treeMainToSimpleItems(main)} isClean={isClean} />
+    );
+  }
+  return (
+    <Link href={main.href || "#"} className={navLinkClass}>
+      {main.label}
+    </Link>
+  );
+}
+
+function SiteHeaderInner() {
+  const { user, ready } = useAuth();
+  const { t } = useI18n();
+  const { theme } = useTheme();
+  const isIndonesia = isIndonesiaTheme(theme);
+  const isClean = isMinimalTheme(theme) && !isIndonesia;
+  const [hydrated, setHydrated] = useState(false);
   const [bag, setBag] = useState(0);
   const [q, setQ] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { catalog } = useShopCatalog();
 
   useEffect(() => {
-    setUser(getStoredUser());
+    setHydrated(true);
     setBag(cartCount());
     const refresh = () => setBag(cartCount());
     window.addEventListener("cart-updated", refresh);
@@ -34,19 +81,62 @@ export function SiteHeader() {
     };
   }, []);
 
-  if (pathname.startsWith("/erp")) return null;
+  const accountHref = hydrated && user ? "/profile" : "/login";
+  const accountLabel =
+    hydrated && user
+      ? honorificName(user)
+      : hydrated && ready
+        ? t("header.login")
+        : "...";
+
+  const headerActionClass = isIndonesia
+    ? "group flex min-w-[4.25rem] flex-col items-center rounded-lg border border-[var(--pink-border)] bg-white px-2.5 py-2 text-center text-[11px] shadow-sm transition hover:border-[var(--pink-accent)]/40 hover:bg-[var(--pink-bg-soft)] sm:min-w-[4.75rem] sm:px-3"
+    : isClean
+      ? "group flex min-w-[4.25rem] flex-col items-center rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-center text-[11px] shadow-sm transition hover:border-gray-400 hover:bg-gray-50 sm:min-w-[4.75rem] sm:px-3"
+      : "group flex min-w-[4.25rem] flex-col items-center rounded-2xl border-2 border-[var(--pink-border)] bg-[var(--pink-bg-soft)] px-2.5 py-2 text-center text-[11px] shadow-[0_4px_18px_var(--pink-shadow)] transition hover:border-[rgba(233,30,140,0.35)] hover:bg-white sm:min-w-[4.75rem] sm:px-3";
+  const headerIconClass = isIndonesia
+    ? "flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-[var(--pink-border)] bg-[var(--pink-bg-soft)] transition group-hover:border-[var(--pink-accent)]/50 sm:h-10 sm:w-10"
+    : isClean
+      ? "flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 text-gray-700 transition group-hover:border-gray-400 group-hover:bg-white sm:h-10 sm:w-10"
+      : "flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-[var(--pink-border)] bg-white text-base shadow-inner transition group-hover:border-[rgba(233,30,140,0.45)] sm:h-10 sm:w-10 sm:text-lg";
+  const searchFormClass = isClean
+    ? "mx-auto flex max-w-xl flex-1 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_14px_rgba(15,23,42,0.06)] sm:px-5"
+    : "mx-auto flex max-w-xl flex-1 items-center rounded-full border-2 border-[var(--pink-border)] bg-[var(--pink-bg-soft)] px-3 py-2.5 shadow-inner sm:px-4";
+  const searchInputClass = isClean
+    ? "w-full bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
+    : "w-full bg-transparent text-sm outline-none";
+  const navScrollClass =
+    "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-webkit-overflow-scrolling:touch] touch-pan-x";
+  const navClass = isClean
+    ? [
+        "relative flex items-center gap-5 text-sm text-gray-600",
+        "flex-nowrap justify-start overflow-x-auto scroll-smooth px-4 py-2.5",
+        navScrollClass,
+        "md:flex-wrap md:justify-center md:gap-3 md:overflow-visible",
+        "md:rounded-full md:border md:border-gray-200 md:bg-white md:px-6 md:py-3 md:shadow-[0_2px_14px_rgba(15,23,42,0.06)]",
+      ].join(" ")
+    : [
+        "relative flex items-center gap-5 text-sm text-gray-700",
+        "flex-nowrap justify-start overflow-x-auto scroll-smooth px-4 py-2.5",
+        navScrollClass,
+        "md:flex-wrap md:justify-center md:gap-3 md:overflow-visible",
+        "md:rounded-2xl md:border-2 md:border-[var(--pink-border)] md:bg-[var(--pink-bg-soft)] md:px-4 md:py-3 md:shadow-[0_4px_18px_var(--pink-shadow)]",
+      ].join(" ");
+  const navLinkClass = navItemLinkClass(isClean);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
-      <div className="bg-sky-100 py-1.5 text-center text-xs text-sky-900">
-        FREE SHIPPING UP TO 10K · SAVE UP TO 40%
+    <header
+      className={`sticky top-0 z-50 bg-white/95 shadow-sm backdrop-blur-sm ${
+        isClean ? "border-b border-gray-100" : "border-b border-[var(--pink-border)]"
+      }`}
+    >
+      <div className="banner-gingham py-2 text-center text-xs font-medium text-[var(--pink-deep)]">
+        {t("banner.shipping")}
       </div>
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-4">
-        <Link href="/" className="font-serif-logo shrink-0 text-2xl font-semibold tracking-widest">
-          EYESIGHT
-        </Link>
+      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:gap-6">
+        <DayeonLogo variant="header" />
         <form
-          className="mx-auto flex max-w-xl flex-1 items-center rounded-full border border-gray-200 bg-gray-50 px-4 py-2"
+          className={searchFormClass}
           onSubmit={(e) => {
             e.preventDefault();
             window.location.href = `/?q=${encodeURIComponent(q)}`;
@@ -55,33 +145,98 @@ export function SiteHeader() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="필요한 걸 여기서 검색해봐..."
-            className="w-full bg-transparent text-sm outline-none"
+            placeholder={t("search.placeholder")}
+            className={searchInputClass}
           />
-          <span className="text-gray-400">🔍</span>
+          {isClean ? (
+            <IconSearch className="h-5 w-5 shrink-0 text-gray-500" />
+          ) : (
+            <span className="text-[var(--pink-accent)]">🔍</span>
+          )}
         </form>
-        <div className="flex shrink-0 items-center gap-5 text-xs">
-          <Link href={user ? "/account" : "/login"} className="flex flex-col items-center text-center">
-            <span className="text-lg text-[var(--pink-accent)]">👤</span>
-            <span className="text-gray-500">내 계좌</span>
-            <span className="font-medium">
-              {user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}` : "로그인 / 가입"}
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="hidden items-center gap-2 md:flex sm:gap-3">
+          <Link href={accountHref} className={headerActionClass}>
+            <span className={`mb-0.5 ${headerIconClass}`}>
+              {user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : isIndonesia ? (
+                <IconUserID className="h-9 w-9 sm:h-10 sm:w-10" />
+              ) : isClean ? (
+                <IconUser className="h-5 w-5" />
+              ) : (
+                <span className="text-[var(--pink-accent)]" aria-hidden>
+                  ♡
+                </span>
+              )}
+            </span>
+            <span className="text-[10px] text-gray-500 sm:text-[11px]">{t("header.account")}</span>
+            <span className="max-w-[5.5rem] truncate text-[10px] font-semibold text-[var(--pink-deep)] sm:max-w-[6.5rem] sm:text-[11px]">
+              {accountLabel}
             </span>
           </Link>
-          <Link href="/bag" className="flex flex-col items-center text-center">
-            <span className="text-lg text-[var(--pink-accent)]">🛍</span>
-            <span className="text-gray-500">내 가방</span>
-            <span className="font-medium">({bag})</span>
+          <Link href="/bag" className={headerActionClass}>
+            <span className={`mb-0.5 ${headerIconClass}`}>
+              {isIndonesia ? (
+                <IconBagID className="h-9 w-9 sm:h-10 sm:w-10" />
+              ) : isClean ? (
+                <IconBag className="h-5 w-5" />
+              ) : (
+                <span className="text-[var(--pink-accent)]" aria-hidden>
+                  🛍
+                </span>
+              )}
+            </span>
+            <span className="text-[10px] text-gray-500 sm:text-[11px]">{t("header.bag")}</span>
+            <span
+              className={`mt-0.5 inline-flex min-w-[1.75rem] items-center justify-center px-2 py-0.5 text-[10px] font-bold sm:text-[11px] ${
+                isIndonesia
+                  ? bag > 0
+                    ? "rounded-md bg-[var(--pink-accent)] text-white"
+                    : "rounded-md bg-[var(--pink-bg)] text-[var(--pink-deep)]"
+                  : isClean
+                    ? bag > 0
+                      ? "rounded-md bg-gray-900 text-white"
+                      : "rounded-md bg-gray-100 text-gray-600"
+                    : bag > 0
+                    ? "rounded-full bg-[var(--pink-accent)] text-white shadow-sm"
+                    : "rounded-full bg-white text-gray-500 ring-1 ring-[var(--pink-border)]"
+              }`}
+            >
+              {bag}
+            </span>
           </Link>
+          </div>
+          <MobileNavDrawer
+            open={menuOpen}
+            onOpen={() => setMenuOpen(true)}
+            onClose={() => setMenuOpen(false)}
+            accountHref={accountHref}
+            accountLabel={accountLabel}
+            bag={bag}
+            isClean={isClean || isIndonesia}
+          />
         </div>
       </div>
-      <nav className="mx-auto flex max-w-6xl justify-center gap-8 border-t border-gray-50 px-4 py-3 text-sm text-gray-700">
-        {NAV.map((item) => (
-          <Link key={item.label} href={item.href} className="hover:text-[var(--pink-accent)]">
-            {item.label}
+      <div
+        className={`mx-auto max-w-6xl md:px-4 md:pb-3 ${
+          isClean ? "border-b border-gray-100 md:border-b-0" : "border-b border-[var(--pink-border)]/40 md:border-b-0"
+        }`}
+      >
+        <nav className={navClass} aria-label="메인 메뉴">
+          {catalog.categoryTree.map((main, i) => (
+            <span key={main.id} className="contents">
+              {i > 0 ? <NavHeartDivider index={i} /> : null}
+              <ShopNavMain main={main} isClean={isClean} navLinkClass={navLinkClass} />
+            </span>
+          ))}
+          <NavHeartDivider index={catalog.categoryTree.length} />
+          <Link href="/articles" className={navLinkClass}>
+            {t("nav.articles")}
           </Link>
-        ))}
-      </nav>
+        </nav>
+      </div>
     </header>
   );
 }

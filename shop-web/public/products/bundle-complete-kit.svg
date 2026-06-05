@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="400" viewBox="0 0 320 400">
+  <rect width="320" height="400" fill="#fce8ef"/>
+  <rect x="70" y="100" width="80" height="120" rx="8" fill="#ec4899" opacity="0.4"/>
+  <rect x="170" y="110" width="80" height="110" rx="8" fill="#db2777" opacity="0.4"/>
+  <text x="160" y="340" text-anchor="middle" fill="#831843" font-family="sans-serif" font-size="14">Complete Kit B</text>
+</svg>

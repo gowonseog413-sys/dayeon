@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { formatRp } from "@/lib/api";
-import { addToCart } from "@/lib/cart-store";
+import { productImageFallback } from "@/lib/product-image-fallback";
 import type { Product } from "@/lib/types";
 
 type Props = {
@@ -13,54 +14,51 @@ type Props = {
 
 export function ProductCard({ product, variant = "compact" }: Props) {
   const tall = variant === "tall";
+  const fallback = productImageFallback(product);
+  const [imgSrc, setImgSrc] = useState(product.image);
 
   return (
-    <article className="group relative flex flex-col">
+    <article className="product-card-cute group relative flex h-full flex-col">
       {product.badge && (
-        <span className="absolute left-2 top-2 z-10 rounded-full bg-[var(--pink-accent)] px-2 py-0.5 text-[10px] font-bold text-white">
+        <span className="absolute left-4 top-4 z-10 rounded-full bg-[var(--pink-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
           {product.badge}
         </span>
       )}
       <Link
         href={`/product/${product.id}`}
-        className={`relative block overflow-hidden rounded-md bg-gray-50 ${tall ? "aspect-[3/4]" : "aspect-square"}`}
+        className={`product-image-frame relative block ${tall ? "aspect-[3/4]" : "aspect-square"}`}
       >
         <Image
-          src={product.image}
+          src={imgSrc}
           alt={product.name}
           fill
-          className="object-cover transition group-hover:scale-105"
+          unoptimized
+          className="object-cover transition duration-300 group-hover:scale-[1.03]"
+          onError={() => setImgSrc(fallback)}
         />
         {tall && (
           <span
-            className="absolute bottom-3 right-3 h-10 w-10 rounded-full border-2 border-white shadow"
+            className="absolute bottom-3 right-3 h-10 w-10 rounded-full border-2 border-white shadow-md ring-2 ring-[var(--pink-border)]"
             style={{ background: product.colorSwatch }}
           />
         )}
       </Link>
-      <div className="mt-2 space-y-0.5 text-center text-sm">
-        <p className="text-xs text-gray-500">{product.brand}</p>
-        <Link href={`/product/${product.id}`} className="font-medium hover:text-[var(--pink-accent)]">
+      <div className="mt-3 flex flex-1 flex-col items-center space-y-0.5 px-1 pb-1 text-center text-sm">
+        <p className="text-xs font-medium text-[var(--pink-deep)]/70">{product.brand}</p>
+        <Link
+          href={`/product/${product.id}`}
+          className="font-semibold text-gray-800 transition hover:text-[var(--pink-accent)]"
+        >
           {product.name}
         </Link>
         <p className="text-xs text-gray-400 line-through">{formatRp(product.priceOriginal)}</p>
-        <p className="font-semibold text-[var(--pink-accent)]">{formatRp(product.priceSale)}</p>
+        <p className="text-base font-bold text-[var(--pink-accent)]">{formatRp(product.priceSale)}</p>
         {!tall && (
           <span
-            className="mx-auto mt-1 inline-block h-4 w-4 rounded-full border border-gray-200"
+            className="mx-auto mt-1.5 inline-block h-5 w-5 rounded-full border-2 border-white shadow ring-1 ring-[var(--pink-border)]"
             style={{ background: product.colorSwatch }}
           />
         )}
-        <button
-          type="button"
-          onClick={() => {
-            addToCart(product.id);
-            alert("장바구니에 담았습니다.");
-          }}
-          className="mt-2 w-full rounded-full border border-[var(--pink-accent)] py-1 text-xs text-[var(--pink-accent)] opacity-0 transition group-hover:opacity-100"
-        >
-          담기
-        </button>
       </div>
     </article>
   );

@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { readDb, writeDb } from "./db.js";
+import { EXTRA_PRODUCTS } from "./extra-products.js";
 
 const products = [
   {
@@ -11,7 +12,7 @@ const products = [
     priceOriginal: 169000,
     priceSale: 129000,
     badge: "SALE",
-    image: "/placeholders/lens-gray.svg",
+    image: "/products/lens-bluebell-gray.png",
     colorSwatch: "#9ca3af",
     description:
       "자연스러운 그레이 톤의 데일리 렌즈. 14.2mm 직경, PC 하이드로겔 소재.",
@@ -25,7 +26,7 @@ const products = [
     priceOriginal: 169000,
     priceSale: 129000,
     badge: "SALE",
-    image: "/placeholders/lens-choco.svg",
+    image: "/products/lens-posy-choco.png",
     colorSwatch: "#78350f",
   },
   {
@@ -37,7 +38,7 @@ const products = [
     priceOriginal: 169000,
     priceSale: 129000,
     badge: "SALE",
-    image: "/placeholders/lens-gray.svg",
+    image: "/products/lens-daisy-gray.png",
     colorSwatch: "#6b7280",
   },
   {
@@ -49,7 +50,7 @@ const products = [
     priceOriginal: 169000,
     priceSale: 129000,
     badge: "SALE",
-    image: "/placeholders/lens-clear.svg",
+    image: "/products/lens-moist-clear.png",
     colorSwatch: "#e5e7eb",
   },
   {
@@ -61,7 +62,7 @@ const products = [
     priceOriginal: 169000,
     priceSale: 129000,
     badge: "SALE",
-    image: "/placeholders/lens-brown.svg",
+    image: "/products/lens-freesia-brown.png",
     colorSwatch: "#a16207",
   },
   {
@@ -73,7 +74,7 @@ const products = [
     priceOriginal: 169000,
     priceSale: 129000,
     badge: "SALE",
-    image: "/placeholders/lens-choco.svg",
+    image: "/products/lens-calla-choco.png",
     colorSwatch: "#92400e",
   },
   {
@@ -85,7 +86,7 @@ const products = [
     priceOriginal: 122000,
     priceSale: 96000,
     badge: "SALE",
-    image: "/placeholders/lens-brown.svg",
+    image: "/products/lens-ocher-brown.png",
     colorSwatch: "#b45309",
   },
   {
@@ -97,7 +98,7 @@ const products = [
     priceOriginal: 169000,
     priceSale: 129000,
     badge: "NEW",
-    image: "/placeholders/lens-brown.svg",
+    image: "/products/lens-ivy-brown.png",
     colorSwatch: "#854d0e",
   },
   {
@@ -109,7 +110,7 @@ const products = [
     priceOriginal: 134000,
     priceSale: 129000,
     badge: "SALE",
-    image: "/placeholders/solution.svg",
+    image: "/products/product-rohto-lycee.png",
     colorSwatch: "#3b82f6",
   },
   {
@@ -121,7 +122,7 @@ const products = [
     priceOriginal: 135000,
     priceSale: 120000,
     badge: "SALE",
-    image: "/placeholders/solution.svg",
+    image: "/products/product-biotrue-mps.png",
     colorSwatch: "#06b6d4",
   },
   {
@@ -133,7 +134,7 @@ const products = [
     priceOriginal: 110000,
     priceSale: 106000,
     badge: null,
-    image: "/placeholders/solution.svg",
+    image: "/products/product-renu-fresh.png",
     colorSwatch: "#0ea5e9",
   },
   {
@@ -145,7 +146,7 @@ const products = [
     priceOriginal: 49000,
     priceSale: 39000,
     badge: "SALE",
-    image: "/placeholders/accessory.svg",
+    image: "/products/product-lens-case-anya.png",
     colorSwatch: "#ec4899",
   },
   {
@@ -157,7 +158,7 @@ const products = [
     priceOriginal: 42000,
     priceSale: 29000,
     badge: "SALE",
-    image: "/placeholders/accessory.svg",
+    image: "/products/product-travel-case.png",
     colorSwatch: "#f472b6",
   },
   {
@@ -169,8 +170,68 @@ const products = [
     priceOriginal: 60000,
     priceSale: 39000,
     badge: "SALE",
-    image: "/placeholders/accessory.svg",
+    image: "/products/product-lens-applicator.png",
     colorSwatch: "#db2777",
+  },
+  {
+    id: "p18",
+    brand: "Lens Care",
+    name: "Sterile Saline 100ml",
+    category: "accessories",
+    section: "accessories",
+    priceOriginal: 45000,
+    priceSale: 35000,
+    badge: "SALE",
+    image: "/products/product-renu-fresh.png",
+    colorSwatch: "#38bdf8",
+  },
+  {
+    id: "p19",
+    brand: "Lens Care",
+    name: "Ultra Soft Lens Wipes 30pcs",
+    category: "accessories",
+    section: "accessories",
+    priceOriginal: 55000,
+    priceSale: 42000,
+    badge: "SALE",
+    image: "/products/product-biotrue-mps.png",
+    colorSwatch: "#22d3ee",
+  },
+  {
+    id: "p20",
+    brand: "Lens Care",
+    name: "Pink LED Light Mirror",
+    category: "accessories",
+    section: "accessories",
+    priceOriginal: 89000,
+    priceSale: 69000,
+    badge: "NEW",
+    image: "/products/product-lens-case-anya.png",
+    colorSwatch: "#f472b6",
+  },
+  {
+    id: "p21",
+    brand: "Lens Care",
+    name: "Professional Lens Tweezers",
+    category: "accessories",
+    section: "accessories",
+    priceOriginal: 48000,
+    priceSale: 36000,
+    badge: null,
+    image: "/products/product-lens-applicator.png",
+    colorSwatch: "#ec4899",
+  },
+  {
+    id: "p22",
+    brand: "Lens Care",
+    name: "Marble Pattern Lens Case",
+    category: "accessories",
+    section: "accessories",
+    priceOriginal: 52000,
+    priceSale: 41000,
+    badge: "SALE",
+    image: "/products/product-travel-case.png",
+    colorSwatch: "#a855f7",
   },
   {
     id: "p15",
@@ -181,7 +242,7 @@ const products = [
     priceOriginal: 144400,
     priceSale: 139400,
     badge: "SALE",
-    image: "/placeholders/bundle.svg",
+    image: "/products/bundle-travel-essentials.png",
     colorSwatch: "#be185d",
   },
   {
@@ -193,7 +254,8 @@ const products = [
     priceOriginal: 226500,
     priceSale: 199000,
     badge: "SALE",
-    image: "/placeholders/bundle.svg",
+    image: "/products/bundle-complete-kit.png",
+    images: [],
     colorSwatch: "#9d174d",
   },
   {
@@ -205,9 +267,10 @@ const products = [
     priceOriginal: 58000,
     priceSale: 43500,
     badge: "25%",
-    image: "/placeholders/bundle.svg",
+    image: "/products/bundle-lensmate-pack.png",
     colorSwatch: "#831843",
   },
+  ...EXTRA_PRODUCTS,
 ];
 
 async function seed() {
@@ -220,23 +283,74 @@ async function seed() {
         id: "u-admin",
         email: "admin@eyesight.local",
         passwordHash: hash,
+        authProvider: "local",
+        googleId: null,
+        avatarUrl: null,
         firstName: "Admin",
         lastName: "ERP",
+        phone: "010-0000-0001",
+        address: "서울특별시 강남구 테헤란로 1",
         role: "admin",
-        createdAt: new Date().toISOString(),
+        points: 0,
+        loginCount: 12,
+        lastLoginAt: new Date().toISOString(),
+        createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
       },
       {
         id: "u-demo",
         email: "demo@eyesight.local",
         passwordHash: demoHash,
+        authProvider: "local",
+        googleId: null,
+        avatarUrl: null,
         firstName: "고원석",
         lastName: "Demo",
+        phone: "010-1234-5678",
+        address: "경기도 성남시 분당구 정자동 12-3",
         role: "customer",
-        createdAt: new Date().toISOString(),
+        points: 5000,
+        loginCount: 7,
+        lastLoginAt: new Date(Date.now() - 3600000).toISOString(),
+        createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
       },
     ],
     products,
-    orders: [],
+    orders: [
+      {
+        id: "o-demo-1",
+        userId: "u-demo",
+        status: "paid",
+        total: 258000,
+        items: [{ productId: "p1", quantity: 2 }],
+        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      },
+    ],
+    carts: [
+      {
+        userId: "u-demo",
+        items: [
+          {
+            id: "cart-demo-1",
+            productId: "p1",
+            quantity: 1,
+            savedAt: new Date().toISOString(),
+          },
+          {
+            id: "cart-demo-2",
+            productId: "p2",
+            quantity: 2,
+            savedAt: new Date(Date.now() - 3600000).toISOString(),
+          },
+          {
+            id: "cart-demo-3",
+            productId: "p3",
+            quantity: 1,
+            savedAt: new Date(Date.now() - 7200000).toISOString(),
+          },
+        ],
+        updatedAt: new Date().toISOString(),
+      },
+    ],
   };
 
   writeDb(db);

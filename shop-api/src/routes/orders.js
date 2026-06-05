@@ -2,6 +2,7 @@ import { Router } from "express";
 import { v4 as uuid } from "uuid";
 import { readDb, updateDb } from "../db.js";
 import { authRequired } from "../middleware/auth.js";
+import { ensurePaymentChannels, listEnabledChannels } from "../payment-methods.js";
 
 const router = Router();
 
@@ -11,7 +12,7 @@ function nextOrderNumber(db) {
 }
 
 router.post("/", authRequired, (req, res) => {
-  const { items, shipping, paymentMethod } = req.body;
+  const { items, shipping, paymentMethod, paymentProfileId } = req.body;
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "주문 항목이 없습니다." });
   }
@@ -42,6 +43,31 @@ router.post("/", authRequired, (req, res) => {
   const subtotal = orderItems.reduce((s, i) => s + i.lineTotal, 0);
   const shippingFee = subtotal >= 500000 ? 0 : 10000;
   const total = subtotal + shippingFee;
+
+  ensurePaymentChannels(db);
+  const enabledChannels = listEnabledChannels(db);
+  let resolvedMethod = String(paymentMethod || "credit_card").trim();
+  let jubelioCode = "";
+  let paymentLabel = "";
+  let profileId = "";
+
+  if (paymentProfileId) {
+    const profile = db.paymentProfiles.find(
+      (p) => p.id === paymentProfileId && p.userId === req.user.sub,
+    );
+    if (profile) {
+      profileId = profile.id;
+      paymentLabel = profile.label;
+      resolvedMethod = profile.channelType;
+    }
+  }
+
+  const channel = enabledChannels.find((c) => c.type === resolvedMethod);
+  if (!channel) {
+    return res.status(400).json({ error: "사용할 수 없는 결제 방법입니다." });
+  }
+  jubelioCode = channel.jubelioCode;
+
   const order = {
     id: uuid(),
     orderNumber: nextOrderNumber(db),
@@ -57,7 +83,10 @@ router.post("/", authRequired, (req, res) => {
       city: shipping.city || "",
       postalCode: shipping.postalCode || "",
     },
-    paymentMethod: paymentMethod || "bank_transfer",
+    paymentMethod: resolvedMethod,
+    paymentProfileId: profileId || undefined,
+    paymentLabel: paymentLabel || undefined,
+    jubelioCode,
     paymentStatus: "pending",
     status: "pending",
     createdAt: new Date().toISOString(),

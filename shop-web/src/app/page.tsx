@@ -1,16 +1,18 @@
+import { redirect } from "next/navigation";
 import { HeroCarousel } from "@/components/HeroCarousel";
-import { ProductSection } from "@/components/ProductSection";
-import { api } from "@/lib/api";
+import { HomeApiNotice } from "@/components/HomeApiNotice";
+import { HomeSections } from "@/components/HomeSections";
+import { api, getApiDisplayUrl } from "@/lib/api";
 import type { Product } from "@/lib/types";
 
-async function loadProducts() {
+async function loadProducts(): Promise<{ products: Product[]; apiOk: boolean }> {
   try {
     const data = await api<{ products: Product[] }>("/api/products", {
       cache: "no-store",
     });
-    return data.products;
+    return { products: data.products, apiOk: true };
   } catch {
-    return [] as Product[];
+    return { products: [], apiOk: false };
   }
 }
 
@@ -20,7 +22,8 @@ export default async function HomePage({
   searchParams: Promise<{ q?: string; section?: string }>;
 }) {
   const params = await searchParams;
-  let products = await loadProducts();
+  const { products: loaded, apiOk } = await loadProducts();
+  let products = loaded;
 
   if (params.q) {
     const term = params.q.toLowerCase();
@@ -31,53 +34,30 @@ export default async function HomePage({
     );
   }
 
-  const bySection = (s: string) => products.filter((p) => p.section === s);
-
   if (params.section) {
-    const section = params.section;
-    const filtered =
-      section === "contact-lenses"
-        ? products.filter((p) => p.category === "contact-lenses")
-        : section === "accessories"
-          ? bySection("accessories")
-          : bySection(section);
-    const titles: Record<string, string> = {
-      "contact-lenses": "콘택트렌즈",
-      accessories: "부속품",
-      "best-seller": "베스트 셀러",
-      bundles: "번들 액세서리",
-      bloominc: "블루밍크",
-      solutions: "솔루션 및 드롭",
+    const map: Record<string, string> = {
+      "contact-lenses": "/catalog?category=contact-lenses",
+      accessories: "/catalog?category=accessories",
+      "best-seller": "/catalog?section=best-seller",
+      bundles: "/catalog?category=bundles",
+      bloominc: "/catalog?section=bloominc",
+      solutions: "/catalog?category=solutions",
     };
-    const tall = section === "best-seller" || section === "contact-lenses";
-    return (
-      <ProductSection
-        title={titles[section] ?? section}
-        products={filtered}
-        variant={tall ? "tall" : "compact"}
-        pinkBg={section === "best-seller"}
-      />
-    );
+    redirect(map[params.section] ?? `/catalog?section=${params.section}`);
   }
+
+  const showSections = apiOk && products.length > 0;
 
   return (
     <>
       <HeroCarousel />
+      {!apiOk && !params.section && <HomeApiNotice apiUrl={getApiDisplayUrl()} />}
       {params.q && (
         <p className="py-4 text-center text-sm text-gray-600">
           &quot;{params.q}&quot; 검색 결과 {products.length}건
         </p>
       )}
-      <ProductSection title="블루밍크" products={bySection("bloominc")} />
-      <ProductSection
-        title="베스트 셀러"
-        products={bySection("best-seller")}
-        variant="tall"
-        pinkBg
-      />
-      <ProductSection title="솔루션 및 드롭" products={bySection("solutions")} />
-      <ProductSection title="부속품" products={bySection("accessories")} />
-      <ProductSection title="번들 액세서리" products={bySection("bundles")} />
+      {showSections && <HomeSections products={products} />}
     </>
   );
 }

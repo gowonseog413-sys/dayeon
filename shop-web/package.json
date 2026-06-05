@@ -2,10 +2,20 @@
   "name": "shop-web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "optionalDependencies": {
+    "@emnapi/runtime": "^1.10.0",
+    "acorn": "^8.16.0",
+    "@types/markdown-it": "^14.1.2",
+    "markdown-it": "^14.2.0"
+  },
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 3600",
     "build": "next build",
-    "start": "next start -p 3001",
+    "start": "next start -p 3600",
+    "start:prod": "next start",
     "lint": "eslint"
   },
   "dependencies": {

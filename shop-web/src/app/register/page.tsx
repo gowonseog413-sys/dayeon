@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { api } from "@/lib/api";
+import { mergeCartOnLogin } from "@/lib/cart-store";
 import { saveSession } from "@/lib/auth-store";
 import type { User } from "@/lib/types";
 
@@ -28,8 +30,8 @@ export default function RegisterPage() {
         body: JSON.stringify(form),
       });
       saveSession(data.token, data.user);
-      router.push("/");
-      router.refresh();
+      await mergeCartOnLogin(data.token);
+      window.location.href = "/profile";
     } catch (err) {
       setError(err instanceof Error ? err.message : "가입 실패");
     } finally {
@@ -40,6 +42,12 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="mb-8 text-center font-serif-logo text-3xl">Create an Account</h1>
+      <SocialLoginButtons nextPath="/" />
+      <div className="my-6 flex items-center gap-3 text-xs text-gray-400">
+        <span className="h-px flex-1 bg-gray-200" />
+        또는 이메일로 가입
+        <span className="h-px flex-1 bg-gray-200" />
+      </div>
       <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-gray-100 p-6 shadow-sm">
         {error && <p className="text-sm text-red-600">{error}</p>}
         {(["firstName", "lastName", "email", "password"] as const).map((key) => (

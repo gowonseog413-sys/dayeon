@@ -3,15 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "src/functions.js",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js",
-    "seed": "node src/seed.js"
+    "dev": "node --env-file=.env.local --watch src/index.js",
+    "start": "node --env-file=.env.local src/index.js",
+    "start:prod": "node src/index.js",
+    "seed": "node src/seed.js",
+    "seed:articles": "node src/seed-articles.js",
+    "seed:articles:extra": "node src/seed-articles-extra.js",
+    "patch:products": "node src/patch-product-details.js",
+    "patch:extra": "node src/patch-extra-products.js",
+    "patch:complete-kit": "node src/patch-complete-kit-image.js",
+    "seed:cms": "node src/seed-cms.js",
+    "seed:legal": "node src/seed-legal.js",
+    "seed:reviews": "node src/seed-reviews.js"
+  },
+  "engines": {
+    "node": "20"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^6.6.0",
     "jsonwebtoken": "^9.0.2",
     "uuid": "^11.0.3"
   }
