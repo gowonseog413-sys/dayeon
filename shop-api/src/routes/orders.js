@@ -7,6 +7,11 @@ import { consolidateOrderItems, enrichOrder } from "../order-enrich.js";
 import { calcOrderShippingFee } from "../shipping-fee.js";
 import { syncOrderDeliveryStatus } from "../order-delivery.js";
 import { deductUserPoints, refundOrderPoints } from "../points-rewards.js";
+import {
+  checkOrderStock,
+  deductStockForOrder,
+  restoreStockForOrder,
+} from "../inventory.js";
 
 const router = Router();
 
@@ -16,6 +21,43 @@ function nextOrderNumber(db) {
   const n = db.orders.length + 1;
   return `ES-${String(n).padStart(5, "0")}`;
 }
+
+router.post("/check-stock", authRequired, (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "주문 항목이 없습니다." });
+  }
+
+  const db = readDb();
+  let orderItems;
+  try {
+    orderItems = items.map((item) => {
+      const product = db.products.find((p) => p.id === item.productId);
+      if (!product) throw new Error(`상품 없음: ${item.productId}`);
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      return {
+        productId: product.id,
+        name: product.name,
+        brand: product.brand,
+        priceSale: product.priceSale,
+        quantity: qty,
+        lineTotal: product.priceSale * qty,
+      };
+    });
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+
+  orderItems = consolidateOrderItems(orderItems);
+  const stock = checkOrderStock(db, orderItems);
+  res.json({
+    ...stock,
+    orderItems: stock.orderItems.map((i) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+    })),
+  });
+});
 
 router.post("/", authRequired, (req, res) => {
   const { items, shipping, paymentMethod, paymentProfileId } = req.body;
@@ -48,6 +90,22 @@ router.post("/", authRequired, (req, res) => {
   }
 
   orderItems = consolidateOrderItems(orderItems);
+
+  const stockPreview = checkOrderStock(db, orderItems);
+  if (stockPreview.status === "blocked") {
+    return res.status(409).json({
+      error: stockPreview.messages[0] || "재고가 부족합니다.",
+      code: "STOCK_UNAVAILABLE",
+      stock: {
+        ...stockPreview,
+        orderItems: stockPreview.orderItems.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+        })),
+      },
+    });
+  }
+  orderItems = stockPreview.orderItems;
 
   const subtotal = orderItems.reduce((s, i) => s + i.lineTotal, 0);
   const shippingFee = calcOrderShippingFee(db, orderItems);
@@ -104,19 +162,52 @@ router.post("/", authRequired, (req, res) => {
     createdAt: new Date().toISOString(),
   };
 
-  updateDb((d) => {
-    const user = d.users.find((u) => u.id === req.user.sub);
-    if (pointsToUse > 0 && user) {
-      const { used } = deductUserPoints(d, user, pointsToUse, {
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        createdAt: order.createdAt,
+  try {
+    updateDb((d) => {
+      const liveCheck = checkOrderStock(d, orderItems);
+      if (liveCheck.status === "blocked") {
+        const err = new Error(liveCheck.messages[0] || "재고가 부족합니다.");
+        err.code = "STOCK_UNAVAILABLE";
+        err.stock = liveCheck;
+        throw err;
+      }
+      const finalItems = liveCheck.orderItems;
+      order.items = finalItems;
+      order.subtotal = finalItems.reduce((s, i) => s + i.lineTotal, 0);
+      order.shippingFee = calcOrderShippingFee(d, finalItems);
+      order.total = order.subtotal + order.shippingFee;
+
+      deductStockForOrder(d, finalItems);
+
+      const user = d.users.find((u) => u.id === req.user.sub);
+      if (pointsToUse > 0 && user) {
+        const { used } = deductUserPoints(d, user, pointsToUse, {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          createdAt: order.createdAt,
+        });
+        order.pointsUsed = used;
+        order.total = Math.max(0, order.total - used);
+      }
+      d.orders.push(order);
+    });
+  } catch (e) {
+    if (e?.code === "STOCK_UNAVAILABLE") {
+      const stock = e.stock || checkOrderStock(readDb(), orderItems);
+      return res.status(409).json({
+        error: e.message,
+        code: "STOCK_UNAVAILABLE",
+        stock: {
+          ...stock,
+          orderItems: stock.orderItems.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+        },
       });
-      order.pointsUsed = used;
-      order.total = Math.max(0, total - used);
     }
-    d.orders.push(order);
-  });
+    throw e;
+  }
 
   res.status(201).json({ order: enrichOrder(readDb(), order) });
 });
@@ -151,6 +242,7 @@ router.patch("/:id/cancel", authRequired, (req, res) => {
   updateDb((d) => {
     const idx = d.orders.findIndex((o) => o.id === order.id);
     if (idx >= 0) {
+      restoreStockForOrder(d, order.items);
       refundOrderPoints(d, order);
       d.orders[idx] = order;
     }

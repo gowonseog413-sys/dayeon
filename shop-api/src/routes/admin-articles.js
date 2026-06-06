@@ -1,5 +1,13 @@
 import { Router } from "express";
 import { v4 as uuid } from "uuid";
+import {
+  countArticlesInCategory,
+  createArticleCategory,
+  deleteArticleCategory,
+  ensureArticleCategories,
+  listArticleCategories,
+  updateArticleCategory,
+} from "../article-categories.js";
 import { readDb, updateDb } from "../db.js";
 import { adminRequired } from "../middleware/auth.js";
 
@@ -17,9 +25,67 @@ function slugify(text) {
   );
 }
 
+router.get("/categories", (_req, res) => {
+  updateDb((d) => ensureArticleCategories(d));
+  const db = readDb();
+  const categories = listArticleCategories(db).map((c) => ({
+    ...c,
+    articleCount: countArticlesInCategory(db, c.id),
+  }));
+  res.json({ categories });
+});
+
+router.post("/categories", (req, res) => {
+  let created = null;
+  try {
+    updateDb((d) => {
+      created = createArticleCategory(d, req.body || {});
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || "카테고리 등록 실패" });
+  }
+  res.status(201).json({ category: created });
+});
+
+router.put("/categories/:id", (req, res) => {
+  let updated = null;
+  try {
+    updateDb((d) => {
+      updated = updateArticleCategory(d, req.params.id, req.body || {});
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || "카테고리 수정 실패" });
+  }
+  if (!updated) return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
+  res.json({ category: updated });
+});
+
+router.delete("/categories/:id", (req, res) => {
+  let removed = false;
+  try {
+    updateDb((d) => {
+      removed = deleteArticleCategory(d, req.params.id, {
+        reassignTo: req.query.reassignTo,
+      });
+    });
+  } catch (err) {
+    if (err.code === "IN_USE") {
+      return res.status(409).json({
+        error: "IN_USE",
+        count: err.count,
+        message: err.message,
+      });
+    }
+    return res.status(400).json({ error: err.message || "카테고리 삭제 실패" });
+  }
+  if (!removed) return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
+  res.json({ ok: true });
+});
+
 router.get("/", (_req, res) => {
-  const articles = readDb()
-    .articles.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const db = readDb();
+  ensureArticleCategories(db);
+  const articles = db.articles.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   res.json({ articles });
 });
 
@@ -49,6 +115,9 @@ router.post("/", (req, res) => {
   };
 
   updateDb((d) => {
+    ensureArticleCategories(d);
+    const defaultCategory = listArticleCategories(d)[0]?.id || "beauty-lifestyle";
+    article.category = category || defaultCategory;
     d.articles.push(article);
   });
 

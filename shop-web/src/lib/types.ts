@@ -49,7 +49,7 @@ export type ProductReview = {
   id: string;
   productId: string;
   userId: string;
-  orderId?: string;
+  orderId?: string | null;
   userName: string;
   rating: number;
   content: string;
@@ -60,6 +60,7 @@ export type ProductReview = {
   pointsAwarded?: number;
   pointsAwardedAt?: string;
   userEmail?: string;
+  adminManaged?: boolean;
 };
 
 export type ReviewableItem = {

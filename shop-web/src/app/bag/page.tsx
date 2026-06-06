@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ErpPagination } from "@/components/erp/ErpPagination";
+import { StockCheckoutModal } from "@/components/StockCheckoutModal";
+import { useStockCheckoutGate } from "@/hooks/useStockCheckoutGate";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { getCart, removeFromCart } from "@/lib/cart-store";
@@ -19,6 +21,8 @@ export default function BagPage() {
   const [lines, setLines] = useState<BagLine[]>([]);
   const [msg, setMsg] = useState("");
   const [page, setPage] = useState(1);
+  const { gate, loading: stockLoading, closeGate, runStockGate, confirmAdjusted } =
+    useStockCheckoutGate();
 
   const load = useCallback(async () => {
     const cart = getCart();
@@ -76,7 +80,9 @@ export default function BagPage() {
       window.location.href = "/login?next=/checkout";
       return;
     }
-    window.location.href = "/checkout";
+    void runStockGate(() => {
+      window.location.href = "/checkout";
+    });
   }
 
   function handleRemove(entryId: string) {
@@ -151,10 +157,20 @@ export default function BagPage() {
       <button
         type="button"
         onClick={goCheckout}
-        className="mt-6 w-full rounded-full bg-[var(--pink-accent)] py-3 text-white"
+        disabled={stockLoading}
+        className="mt-6 w-full rounded-full bg-[var(--pink-accent)] py-3 text-white disabled:opacity-60"
       >
-        결제하기
+        {stockLoading ? "재고 확인 중…" : "결제하기"}
       </button>
+
+      <StockCheckoutModal
+        open={gate.open}
+        mode={gate.mode}
+        result={gate.result}
+        loading={stockLoading}
+        onConfirm={confirmAdjusted}
+        onClose={closeGate}
+      />
     </div>
   );
 }

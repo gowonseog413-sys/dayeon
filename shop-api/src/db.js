@@ -13,6 +13,7 @@ const emptyDb = () => ({
   carts: [],
   wishlists: [],
   articles: [],
+  articleCategories: [],
   reviews: [],
   paymentChannels: [],
   paymentProfiles: [],

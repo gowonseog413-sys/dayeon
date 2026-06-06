@@ -153,15 +153,14 @@ export default function ErpThemePage() {
     }
   }
 
-  function selectTheme(theme: SiteTheme) {
+  function previewTheme(theme: SiteTheme) {
     setPreview(theme);
-    if (theme !== active) applyTheme(theme);
   }
 
   return (
     <ErpPageShell
       title="테마변경"
-      description="적용 시 모든 방문자에게 동일한 쇼핑몰 테마가 표시됩니다. 테마별 모션은 ON/OFF로 제어할 수 있습니다."
+      description="테마를 클릭하면 오른쪽에서 미리보기만 됩니다. 「이 테마 적용」을 눌러야 쇼핑몰에 반영됩니다. 모션은 ON/OFF로 즉시 저장됩니다."
     >
       {errorMsg ? (
         <p className="mb-2 w-full rounded-lg bg-red-50 px-3 py-1 text-sm text-red-700" aria-live="polite">
@@ -185,7 +184,7 @@ export default function ErpThemePage() {
               >
                 <button
                   type="button"
-                  onClick={() => selectTheme(t.id)}
+                  onClick={() => previewTheme(t.id)}
                   disabled={isLoading}
                   className="w-full flex-1 text-left disabled:opacity-60"
                 >

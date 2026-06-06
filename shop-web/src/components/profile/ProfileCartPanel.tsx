@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NatePagination } from "@/components/NatePagination";
+import { StockCheckoutModal } from "@/components/StockCheckoutModal";
+import { useStockCheckoutGate } from "@/hooks/useStockCheckoutGate";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { getCart, removeFromCart } from "@/lib/cart-store";
@@ -25,6 +27,8 @@ export function ProfileCartPanel({ page, onPageChange }: Props) {
   const [lines, setLines] = useState<BagLine[]>([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
+  const { gate, loading: stockLoading, closeGate, runStockGate, confirmAdjusted } =
+    useStockCheckoutGate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,7 +83,9 @@ export function ProfileCartPanel({ page, onPageChange }: Props) {
       window.location.href = "/login?next=/checkout";
       return;
     }
-    window.location.href = "/checkout";
+    void runStockGate(() => {
+      window.location.href = "/checkout";
+    });
   }
 
   function handleRemove(entryId: string) {
@@ -184,10 +190,20 @@ export function ProfileCartPanel({ page, onPageChange }: Props) {
       <button
         type="button"
         onClick={goCheckout}
-        className="mt-6 w-full rounded-full bg-[var(--pink-accent)] py-3 text-sm font-medium text-white"
+        disabled={stockLoading}
+        className="mt-6 w-full rounded-full bg-[var(--pink-accent)] py-3 text-sm font-medium text-white disabled:opacity-60"
       >
-        결제하기
+        {stockLoading ? "재고 확인 중…" : "결제하기"}
       </button>
+
+      <StockCheckoutModal
+        open={gate.open}
+        mode={gate.mode}
+        result={gate.result}
+        loading={stockLoading}
+        onConfirm={confirmAdjusted}
+        onClose={closeGate}
+      />
     </div>
   );
 }

@@ -40,7 +40,15 @@ export async function api<T>(
 
   const res = await fetch(`${API}${path}`, { ...init, headers });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!res.ok) {
+    const err = new Error(data.message || data.error || res.statusText) as Error & {
+      code?: string;
+      stock?: unknown;
+    };
+    err.code = data.code;
+    err.stock = data.stock;
+    throw err;
+  }
   return data as T;
 }
 

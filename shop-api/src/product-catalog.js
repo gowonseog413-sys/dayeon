@@ -8,17 +8,17 @@ export const DEFAULT_CATEGORY_TREE = [
     children: [
       {
         id: "all",
-        label: "전체 렌즈 보기",
+        label: "전체 컬러렌즈",
         sortOrder: 1,
         href: "/catalog?category=contact-lenses",
         children: [],
       },
       {
         id: "brand",
-        label: "브랜드로 보기",
+        label: "브랜드별",
         sortOrder: 2,
         children: [
-          { id: "bloominc", label: "Bloominc", sortOrder: 1 },
+          { id: "bloominc", label: "다연 추천", sortOrder: 1 },
           { id: "eyesm", label: "Eyesm", sortOrder: 2 },
           { id: "eos", label: "EOS", sortOrder: 3 },
           { id: "kitty-kawaii", label: "키티 카와이", sortOrder: 4 },
@@ -27,21 +27,21 @@ export const DEFAULT_CATEGORY_TREE = [
       },
       {
         id: "look",
-        label: "스타일로 보기",
+        label: "스타일별",
         sortOrder: 3,
         children: [
-          { id: "natural", label: "자연스러운 눈빛", sortOrder: 1 },
-          { id: "no-ring", label: "링 없는 렌즈", sortOrder: 2 },
-          { id: "with-ring", label: "또렷한 링 효과", sortOrder: 3 },
+          { id: "natural", label: "일상 · 내추럴", sortOrder: 1 },
+          { id: "no-ring", label: "노링 스타일", sortOrder: 2 },
+          { id: "with-ring", label: "선명한 링라인", sortOrder: 3 },
           { id: "big-eye", label: "또렷한 눈매", sortOrder: 4 },
-          { id: "wedding", label: "웨딩·특별한 날", sortOrder: 5 },
-          { id: "bright", label: "환한 눈빛", sortOrder: 6 },
-          { id: "sensitive", label: "민감한 눈용", sortOrder: 7 },
+          { id: "wedding", label: "웨딩 & 기념일", sortOrder: 5 },
+          { id: "bright", label: "화사한 눈빛", sortOrder: 6 },
+          { id: "sensitive", label: "민감 눈 맞춤", sortOrder: 7 },
         ],
       },
       {
         id: "color",
-        label: "컬러로 보기",
+        label: "컬러별",
         sortOrder: 4,
         children: [
           { id: "almond", label: "아몬드", sortOrder: 1, swatch: "#d4a574" },
@@ -54,7 +54,7 @@ export const DEFAULT_CATEGORY_TREE = [
       },
       {
         id: "diameter",
-        label: "직경으로 보기",
+        label: "직경별",
         sortOrder: 5,
         children: [
           { id: "14-0", label: "14.00 mm", sortOrder: 1 },
@@ -69,10 +69,10 @@ export const DEFAULT_CATEGORY_TREE = [
     label: "케어·용품",
     sortOrder: 2,
     children: [
-      { id: "drops", label: "인공눈물·안약", sortOrder: 1, href: "/catalog?category=solutions&sub=drops", children: [] },
-      { id: "mps", label: "렌즈 세척액", sortOrder: 2, href: "/catalog?category=solutions&sub=mps", children: [] },
-      { id: "travel", label: "휴대용 키트", sortOrder: 3, href: "/catalog?category=accessories&sub=travel", children: [] },
-      { id: "cleaner", label: "렌즈 세정용품", sortOrder: 4, href: "/catalog?category=accessories&sub=cleaner", children: [] },
+      { id: "drops", label: "인공눈물 · 점안액", sortOrder: 1, href: "/catalog?category=solutions&sub=drops", children: [] },
+      { id: "mps", label: "렌즈 관리용액", sortOrder: 2, href: "/catalog?category=solutions&sub=mps", children: [] },
+      { id: "travel", label: "휴대용 케어 키트", sortOrder: 3, href: "/catalog?category=accessories&sub=travel", children: [] },
+      { id: "cleaner", label: "케이스 · 세정 도구", sortOrder: 4, href: "/catalog?category=accessories&sub=cleaner", children: [] },
     ],
   },
   {
@@ -106,7 +106,7 @@ export const DEFAULT_PRODUCT_SECTIONS = [
   { id: "bundles", label: "알뜰 세트", sortOrder: 5 },
 ];
 
-/** 쇼핑몰 좌측 프레임(프레임왼쪽 카데고리) 필터 카테고리 */
+/** 쇼핑몰 좌측 맞춤 필터 카테고리 */
 export const DEFAULT_FILTER_CATEGORIES = [
   { id: "contact-lenses", label: "컬러렌즈", sortOrder: 1 },
   { id: "solutions", label: "렌즈 케어", sortOrder: 2 },
@@ -125,7 +125,7 @@ export const DEFAULT_FILTER_FIELDS = [
   { id: "baseCurve", label: "베이스 곡선", sortOrder: 7 },
   { id: "lifespan", label: "수명", sortOrder: 8 },
   { id: "price", label: "가격", sortOrder: 9 },
-  { id: "saleOnly", label: "매각 (SALE)", sortOrder: 10 },
+  { id: "saleOnly", label: "할인 상품만", sortOrder: 10 },
 ];
 
 /** 카테고리 외 필터 항목별 드롭다운 옵션 (category는 filterCategories 사용) */
@@ -239,6 +239,12 @@ function syncDisplayLabels(db) {
   for (const c of db.productCatalog.filterCategories || []) {
     const next = filterLabels.get(c.id);
     if (next) c.label = next;
+  }
+
+  const fieldLabels = new Map(DEFAULT_FILTER_FIELDS.map((f) => [f.id, f.label]));
+  for (const f of db.productCatalog.filterFields || []) {
+    const next = fieldLabels.get(f.id);
+    if (next) f.label = next;
   }
 }
 

@@ -103,10 +103,18 @@ export function filterProducts(products: Product[], f: CatalogFilters): Product[
 }
 
 export function catalogTitle(f: CatalogFilters): string {
-  if (f.look === "big-eye") return "또렷한 눈매";
-  if (f.look === "natural") return "자연스러운 눈빛";
-  if (f.look === "wedding") return "웨딩·특별한 날";
-  if (f.look) return "컬러렌즈";
+  if (f.look) {
+    const lookLabels: Record<string, string> = {
+      natural: "일상 · 내추럴",
+      "no-ring": "노링 스타일",
+      "with-ring": "선명한 링라인",
+      "big-eye": "또렷한 눈매",
+      wedding: "웨딩 & 기념일",
+      bright: "화사한 눈빛",
+      sensitive: "민감 눈 맞춤",
+    };
+    return lookLabels[f.look] ?? "컬러렌즈";
+  }
   if (f.color) {
     const labels: Record<string, string> = {
       almond: "아몬드",
@@ -116,7 +124,7 @@ export function catalogTitle(f: CatalogFilters): string {
       gray: "그레이",
       clear: "클리어",
     };
-    return labels[f.color] ? `${labels[f.color]} 렌즈` : "컬러로 보기";
+    return labels[f.color] ? `${labels[f.color]} 렌즈` : "컬러별 보기";
   }
   if (f.brand) return f.brand;
   if (f.category === "solutions") return "렌즈 케어";

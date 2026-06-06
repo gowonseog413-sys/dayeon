@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ErpDashboardStatCard } from "@/components/erp/ErpDashboardStatCard";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { api } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
@@ -64,11 +65,16 @@ export default function ErpDashboardPage() {
   }
 
   const cards = [
-    { label: "상품", value: stats.products },
-    { label: "주문", value: stats.orders },
-    { label: "회원", value: stats.users },
-    { label: "대기 주문", value: stats.pendingOrders },
-    { label: "매출 (Rp)", value: stats.revenue.toLocaleString() },
+    { label: "상품", value: stats.products, href: "/erp/products/list", accent: "#0284c7" },
+    { label: "주문", value: stats.orders, href: "/erp/orders", accent: "#7c3aed" },
+    { label: "회원", value: stats.users, href: "/erp/users", accent: "#059669" },
+    { label: "대기 주문", value: stats.pendingOrders, href: "/erp/orders", accent: "#d97706" },
+    {
+      label: "매출 (Rp)",
+      value: stats.revenue.toLocaleString(),
+      href: "/erp/orders/stats",
+      accent: "#e11d8f",
+    },
   ];
 
   const quick = [
@@ -102,10 +108,13 @@ export default function ErpDashboardPage() {
 
       <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-            <p className="text-xs text-gray-500">{c.label}</p>
-            <p className="mt-0.5 text-xl font-semibold">{c.value}</p>
-          </div>
+          <ErpDashboardStatCard
+            key={c.label}
+            href={c.href}
+            label={c.label}
+            value={c.value}
+            accent={c.accent}
+          />
         ))}
       </div>
 

@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ErpContentTabs } from "@/components/erp/ErpContentTabs";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
+import { ErpReviewWorkPanel } from "@/components/erp/ErpReviewWorkPanel";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
@@ -23,15 +24,18 @@ export const ERP_REVIEW_PAGE_SIZE = 4;
 const ERP_POINT_HISTORY_PAGE_SIZE = 20;
 const POLL_MS = 3000;
 
+const PAGE_TITLE = "회원리뷰/포인트";
+
 const REVIEWS_TABS = [
-  { id: "reviews", label: "내리뷰" },
+  { id: "reviews", label: "회원리뷰" },
   { id: "points", label: "포인트내역" },
+  { id: "work", label: "리뷰작업" },
 ] as const;
 
 type ReviewsTabId = (typeof REVIEWS_TABS)[number]["id"];
 
 function isReviewsTabId(value: string | null): value is ReviewsTabId {
-  return value === "reviews" || value === "points";
+  return value === "reviews" || value === "points" || value === "work";
 }
 
 type AdminReview = ProductReview & {
@@ -87,7 +91,7 @@ function ErpReviewsContent() {
   const loadReviews = useCallback(async () => {
     try {
       const [reviewData, rewardData] = await Promise.all([
-        api<{ reviews: AdminReview[] }>("/api/admin/reviews", { token: getToken() }),
+        api<{ reviews: AdminReview[] }>("/api/admin/reviews?scope=member", { token: getToken() }),
         api<{ reviewReward: ReviewReward }>("/api/admin/settings/review-reward", {
           token: getToken(),
         }),
@@ -130,14 +134,15 @@ function ErpReviewsContent() {
   );
 
   const load = useCallback(async () => {
+    if (activeTab !== "reviews") return;
     setLoading(true);
     await loadReviews();
     setLoading(false);
-  }, [loadReviews]);
+  }, [loadReviews, activeTab]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (activeTab === "reviews") load();
+  }, [load, activeTab]);
 
   useEffect(() => {
     if (activeTab !== "points") return;
@@ -169,6 +174,12 @@ function ErpReviewsContent() {
       router.replace("/erp/users/reviews?tab=points");
     }
   }, [activeTab, pageParam, reviewTotalPages, pointsTotalPages, reviewTotal, pointsTotal, router]);
+
+  function goWorkPage(next: number) {
+    const params = new URLSearchParams({ tab: "work" });
+    if (next > 1) params.set("page", String(next));
+    router.push(`/erp/users/reviews?${params}`);
+  }
 
   function switchTab(id: ReviewsTabId) {
     const params = new URLSearchParams();
@@ -224,7 +235,7 @@ function ErpReviewsContent() {
 
   if (loading && activeTab === "reviews") {
     return (
-      <ErpPageShell title="내리뷰/포인트">
+      <ErpPageShell title={PAGE_TITLE}>
         <p className="text-sm text-gray-500">불러오는 중…</p>
       </ErpPageShell>
     );
@@ -232,8 +243,8 @@ function ErpReviewsContent() {
 
   return (
     <ErpPageShell
-      title="내리뷰/포인트"
-      description="회원 리뷰 목록을 확인하고 리뷰 작성 시 지급할 포인트를 설정합니다. 포인트 적립·사용 내역은 실시간으로 반영됩니다."
+      title={PAGE_TITLE}
+      description="회원 리뷰 확인·포인트 설정·관리자 리뷰 작업을 한곳에서 관리합니다. 포인트 내역은 실시간으로 반영됩니다."
     >
       <ErpContentTabs
         tabs={[...REVIEWS_TABS]}
@@ -248,7 +259,7 @@ function ErpReviewsContent() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div>
             <p className="mb-3 text-xs text-gray-500">
-              총 {reviewTotal}건 · 등록일 역순 · {ERP_REVIEW_PAGE_SIZE}건씩
+              회원 리뷰 {reviewTotal}건 · 등록일 역순 · {ERP_REVIEW_PAGE_SIZE}건씩
             </p>
 
             {reviews.length === 0 ? (
@@ -367,6 +378,12 @@ function ErpReviewsContent() {
             </ErpFormActions>
           </div>
         </div>
+      ) : activeTab === "work" ? (
+        <ErpReviewWorkPanel
+          page={pageParam}
+          onPageChange={goWorkPage}
+          onError={setErrorMsg}
+        />
       ) : pointsLoading ? (
         <p className="text-sm text-gray-500">불러오는 중…</p>
       ) : (
@@ -431,7 +448,7 @@ export default function ErpUsersReviewsPage() {
   return (
     <Suspense
       fallback={
-        <ErpPageShell title="내리뷰/포인트">
+        <ErpPageShell title={PAGE_TITLE}>
           <p className="text-sm text-gray-500">불러오는 중…</p>
         </ErpPageShell>
       }

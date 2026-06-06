@@ -2,8 +2,10 @@
 
 import {
   ARTICLE_PAGE_SIZE,
+  DEFAULT_ARTICLE_CATEGORIES,
   formatArticleDate,
   getArticleCategoryLabel,
+  type ArticleCategory,
 } from "@/lib/erp-articles";
 import type { Article } from "@/lib/types";
 
@@ -14,6 +16,7 @@ type Props = {
   editingId?: string | null;
   onEdit: (article: Article) => void;
   onRemove: (id: string) => void;
+  categories?: ArticleCategory[];
 };
 
 export function ArticleListTable({
@@ -23,6 +26,7 @@ export function ArticleListTable({
   editingId,
   onEdit,
   onRemove,
+  categories = DEFAULT_ARTICLE_CATEGORIES,
 }: Props) {
   return (
     <div className="rounded-xl border bg-white">
@@ -73,7 +77,7 @@ export function ArticleListTable({
                   </td>
                   <td className="truncate px-2 py-1.5">{a.published ? "게시" : "임시"}</td>
                   <td className="truncate px-2 py-1.5 text-gray-600" title={a.category}>
-                    {getArticleCategoryLabel(a.category)}
+                    {getArticleCategoryLabel(a.category, categories)}
                   </td>
                   <td className="truncate px-2 py-1.5" title={a.title}>
                     <a

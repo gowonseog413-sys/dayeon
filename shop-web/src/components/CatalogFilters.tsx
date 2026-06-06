@@ -39,8 +39,11 @@ export function CatalogFilters({ products, filters }: Props) {
     [catalog.filterFieldOptions],
   );
 
-  const fieldLabel = (id: string) =>
-    getFilterFieldLabel(catalog.filterFields, id) ?? t(FIELD_I18N[id] ?? id);
+  const fieldLabel = (id: string) => {
+    const i18nKey = FIELD_I18N[id];
+    if (i18nKey) return t(i18nKey);
+    return getFilterFieldLabel(catalog.filterFields, id) ?? id;
+  };
 
   const categoryOptions = useMemo(() => {
     const sorted = [...(catalog.filterCategories || [])].sort(

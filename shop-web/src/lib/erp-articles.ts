@@ -1,14 +1,27 @@
 export const ARTICLE_PAGE_SIZE = 15;
 
-export const ARTICLE_CATEGORIES = [
+export type ArticleCategory = {
+  id: string;
+  label: string;
+  order?: number;
+  articleCount?: number;
+};
+
+export const DEFAULT_ARTICLE_CATEGORIES: ArticleCategory[] = [
   { id: "beauty-lifestyle", label: "뷰티 및 라이프스타일" },
   { id: "community", label: "커뮤니티" },
   { id: "reviews", label: "리뷰" },
   { id: "tips", label: "팁과 요령" },
-] as const;
+];
 
-export function getArticleCategoryLabel(categoryId: string) {
-  return ARTICLE_CATEGORIES.find((c) => c.id === categoryId)?.label ?? categoryId;
+/** @deprecated DEFAULT_ARTICLE_CATEGORIES 사용 */
+export const ARTICLE_CATEGORIES = DEFAULT_ARTICLE_CATEGORIES;
+
+export function getArticleCategoryLabel(
+  categoryId: string,
+  categories: ArticleCategory[] = DEFAULT_ARTICLE_CATEGORIES,
+) {
+  return categories.find((c) => c.id === categoryId)?.label ?? categoryId;
 }
 
 export function formatArticleDate(iso: string) {
@@ -19,11 +32,13 @@ export function formatArticleDate(iso: string) {
   return `${y}.${m}.${day}`;
 }
 
-export const emptyArticleForm = {
-  title: "",
-  excerpt: "",
-  content: "",
-  category: "beauty-lifestyle",
-  image: "/articles/placeholder.svg",
-  published: true,
-};
+export function emptyArticleForm(categories: ArticleCategory[] = DEFAULT_ARTICLE_CATEGORIES) {
+  return {
+    title: "",
+    excerpt: "",
+    content: "",
+    category: categories[0]?.id || "beauty-lifestyle",
+    image: "/articles/placeholder.svg",
+    published: true,
+  };
+}

@@ -7,7 +7,11 @@ import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { api } from "@/lib/api";
-import { ARTICLE_CATEGORIES, emptyArticleForm } from "@/lib/erp-articles";
+import {
+  DEFAULT_ARTICLE_CATEGORIES,
+  emptyArticleForm,
+  type ArticleCategory,
+} from "@/lib/erp-articles";
 import { getToken } from "@/lib/auth-store";
 import type { Article } from "@/lib/types";
 
@@ -17,14 +21,22 @@ function ErpArticlesContent() {
   const editParam = searchParams.get("edit");
 
   const [articles, setArticles] = useState<Article[]>([]);
-  const [form, setForm] = useState(emptyArticleForm);
+  const [categories, setCategories] = useState<ArticleCategory[]>(DEFAULT_ARTICLE_CATEGORIES);
+  const [form, setForm] = useState(emptyArticleForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const { showSaveSuccess } = useErpSaveSuccess();
 
   function load() {
-    api<{ articles: Article[] }>("/api/admin/articles", { token: getToken() })
-      .then((d) => setArticles(d.articles))
+    const token = getToken();
+    Promise.all([
+      api<{ articles: Article[] }>("/api/admin/articles", { token }),
+      api<{ categories: ArticleCategory[] }>("/api/admin/articles/categories", { token }),
+    ])
+      .then(([articleData, categoryData]) => {
+        setArticles(articleData.articles);
+        setCategories(categoryData.categories);
+      })
       .catch(() => {});
   }
 
@@ -67,7 +79,7 @@ function ErpArticlesContent() {
         });
         showSaveSuccess({ message: "등록되었습니다", subMessage: "언론 보도가 등록되었습니다." });
       }
-      setForm(emptyArticleForm);
+      setForm(emptyArticleForm(categories));
       setEditingId(null);
       router.replace("/erp/articles");
       load();
@@ -78,7 +90,7 @@ function ErpArticlesContent() {
 
   function cancelEdit() {
     setEditingId(null);
-    setForm(emptyArticleForm);
+    setForm(emptyArticleForm(categories));
     router.replace("/erp/articles");
   }
 
@@ -109,7 +121,7 @@ function ErpArticlesContent() {
             onChange={(e) => setForm({ ...form, category: e.target.value })}
             className="w-full rounded border px-3 py-2 text-sm"
           >
-            {ARTICLE_CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
               </option>

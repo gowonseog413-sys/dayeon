@@ -22,7 +22,12 @@ import {
   referralCodeForUser,
   syncAllUserTiers,
 } from "../member-settings.js";
-import { listAdminReviews } from "../review-admin.js";
+import {
+  createManagedReview,
+  deleteReview,
+  listAdminReviews,
+  updateManagedReview,
+} from "../review-admin.js";
 import {
   ensurePointLedger,
   listAllPointTransactions,
@@ -50,6 +55,7 @@ import { isMotionEnabled, normalizeThemeMotion } from "../site-theme-motion.js";
 import { normalizeSiteTheme } from "../site-theme.js";
 import { buildAnalyticsBoard, buildCounterReport } from "../admin-analytics.js";
 import { ensureProductCreatedAt } from "../product-dates.js";
+import { restoreStockForOrder } from "../inventory.js";
 
 const router = Router();
 router.use(adminRequired);
@@ -271,6 +277,7 @@ router.patch("/orders/:id", (req, res) => {
         markOrderCompleted(order);
         applyOrderCompletionRewards(d, order);
       } else if (next === "cancelled") {
+        restoreStockForOrder(d, order.items);
         refundOrderPoints(d, order);
         order.status = "cancelled";
         order.paymentStatus = "cancelled";
@@ -447,18 +454,43 @@ router.delete("/settings/signup-bonus", (_req, res) => {
   res.json({ signupBonus: db.settings.signupBonus });
 });
 
-router.get("/reviews", (_req, res) => {
+router.get("/reviews", (req, res) => {
   const db = readDb();
-  res.json({ reviews: listAdminReviews(db) });
+  const scope =
+    req.query.scope === "managed" ? "managed" : req.query.scope === "member" ? "member" : "all";
+  res.json({ reviews: listAdminReviews(db, { scope }) });
+});
+
+router.post("/reviews/managed", (req, res) => {
+  let created = null;
+  try {
+    updateDb((d) => {
+      created = createManagedReview(d, req.body || {});
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || "리뷰 등록 실패" });
+  }
+  res.status(201).json({ review: created });
+});
+
+router.patch("/reviews/:id/managed", (req, res) => {
+  let updated = null;
+  try {
+    updateDb((d) => {
+      updated = updateManagedReview(d, req.params.id, req.body || {});
+      if (!updated) return;
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || "리뷰 수정 실패" });
+  }
+  if (!updated) return res.status(404).json({ error: "리뷰를 찾을 수 없습니다." });
+  res.json({ review: updated });
 });
 
 router.delete("/reviews/:id", (req, res) => {
   let removed = false;
   updateDb((d) => {
-    if (!Array.isArray(d.reviews)) d.reviews = [];
-    const before = d.reviews.length;
-    d.reviews = d.reviews.filter((r) => r.id !== req.params.id);
-    removed = d.reviews.length < before;
+    removed = deleteReview(d, req.params.id);
   });
   if (!removed) return res.status(404).json({ error: "리뷰를 찾을 수 없습니다." });
   res.json({ ok: true });

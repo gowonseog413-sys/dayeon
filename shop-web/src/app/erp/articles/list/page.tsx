@@ -6,7 +6,7 @@ import { ArticleListTable } from "@/components/erp/ArticleListTable";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
-import { ARTICLE_PAGE_SIZE } from "@/lib/erp-articles";
+import { ARTICLE_PAGE_SIZE, DEFAULT_ARTICLE_CATEGORIES, type ArticleCategory } from "@/lib/erp-articles";
 import { getToken } from "@/lib/auth-store";
 import type { Article } from "@/lib/types";
 
@@ -16,12 +16,20 @@ function ErpArticlesListContent() {
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
   const [articles, setArticles] = useState<Article[]>([]);
+  const [categories, setCategories] = useState<ArticleCategory[]>(DEFAULT_ARTICLE_CATEGORIES);
   const [loading, setLoading] = useState(true);
 
   function load() {
     setLoading(true);
-    api<{ articles: Article[] }>("/api/admin/articles", { token: getToken() })
-      .then((d) => setArticles(d.articles))
+    const token = getToken();
+    Promise.all([
+      api<{ articles: Article[] }>("/api/admin/articles", { token }),
+      api<{ categories: ArticleCategory[] }>("/api/admin/articles/categories", { token }),
+    ])
+      .then(([articleData, categoryData]) => {
+        setArticles(articleData.articles);
+        setCategories(categoryData.categories);
+      })
       .catch(() => setArticles([]))
       .finally(() => setLoading(false));
   }
@@ -59,6 +67,7 @@ function ErpArticlesListContent() {
             articles={pageArticles}
             total={total}
             page={page}
+            categories={categories}
             onEdit={startEdit}
             onRemove={remove}
           />

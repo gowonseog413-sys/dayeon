@@ -16,7 +16,7 @@ export const DEFAULT_FILTER_FIELDS: CatalogItem[] = [
   { id: "baseCurve", label: "베이스 곡선", sortOrder: 7 },
   { id: "lifespan", label: "수명", sortOrder: 8 },
   { id: "price", label: "가격", sortOrder: 9 },
-  { id: "saleOnly", label: "매각 (SALE)", sortOrder: 10 },
+  { id: "saleOnly", label: "할인 상품만", sortOrder: 10 },
 ];
 
 export const FILTER_OPTION_FIELD_IDS = [

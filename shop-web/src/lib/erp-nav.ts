@@ -33,7 +33,7 @@ export const ERP_MODULES: ErpModule[] = [
     subs: [
       { href: "/erp/users", label: "회원 목록", exact: true },
       { href: "/erp/users/points", label: "포인트/적립금", exact: true },
-      { href: "/erp/users/reviews", label: "내리뷰/포인트", exact: true },
+      { href: "/erp/users/reviews", label: "회원리뷰/포인트", exact: true },
       { href: "/erp/users/referral", label: "추천인제도", exact: true },
     ],
   },
@@ -77,6 +77,7 @@ export const ERP_MODULES: ErpModule[] = [
     subs: [
       { href: "/erp/articles", label: "언론 보도 등록", exact: true },
       { href: "/erp/articles/list", label: "게시물 목록", exact: true },
+      { href: "/erp/articles/categories", label: "언론보도 카테고리", exact: true },
     ],
   },
   {

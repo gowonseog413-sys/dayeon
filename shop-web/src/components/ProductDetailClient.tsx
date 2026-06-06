@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NatePagination } from "@/components/NatePagination";
+import { StockCheckoutModal } from "@/components/StockCheckoutModal";
 import { addToCart } from "@/lib/cart-store";
 import { api, formatRp } from "@/lib/api";
+import { checkOrderStock, type StockCheckResult } from "@/lib/stock-checkout";
 import { getToken } from "@/lib/auth-store";
 import { useAuth } from "@/hooks/useAuth";
 import { useReviewReward } from "@/hooks/useReviewReward";
@@ -96,6 +98,8 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
     ok: boolean;
     reason?: string;
   } | null>(null);
+  const [buyStockModal, setBuyStockModal] = useState<StockCheckResult | null>(null);
+  const [buyStockLoading, setBuyStockLoading] = useState(false);
 
   const loadReviews = useCallback(() => {
     api<{ reviews: ProductReview[]; average: number; count: number }>(
@@ -186,10 +190,46 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
     setOpenSection((prev) => (prev === key ? null : key));
   }
 
-  function addBag(andCheckout = false) {
+  async function addBag(andCheckout = false) {
+    if (andCheckout) {
+      const token = getToken();
+      if (!token) {
+        router.push(`/login?next=/product/${product.id}`);
+        return;
+      }
+      setBuyStockLoading(true);
+      try {
+        const result = await checkOrderStock(
+          [{ productId: product.id, quantity: qty }],
+          token,
+        );
+        if (result.status === "blocked") {
+          setBuyStockModal(result);
+          return;
+        }
+        const orderQty = result.orderItems[0]?.quantity ?? qty;
+        if (result.status === "adjusted") {
+          setBuyStockModal(result);
+          return;
+        }
+        addToCart(product.id, orderQty);
+        router.push("/checkout");
+      } catch (err) {
+        setBuyStockModal({
+          status: "blocked",
+          lines: [],
+          orderItems: [],
+          messages: [
+            err instanceof Error ? err.message : "재고 확인에 실패했습니다.",
+          ],
+        });
+      } finally {
+        setBuyStockLoading(false);
+      }
+      return;
+    }
     addToCart(product.id, qty);
-    if (andCheckout) router.push("/checkout");
-    else alert(t("product.addedBag"));
+    alert(t("product.addedBag"));
   }
 
   async function submitReview(e: React.FormEvent) {
@@ -425,10 +465,11 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => addBag(true)}
-              className="flex-1 rounded bg-[var(--pink-accent)] py-3 text-sm font-medium text-white hover:opacity-90"
+              onClick={() => void addBag(true)}
+              disabled={buyStockLoading}
+              className="flex-1 rounded bg-[var(--pink-accent)] py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
             >
-              {t("product.buyNow")}
+              {buyStockLoading ? "재고 확인 중…" : t("product.buyNow")}
             </button>
           </div>
 
@@ -605,6 +646,30 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
       {related.length > 0 && (
         <ProductCarousel title={t("product.related")} products={related} visibleCount={3} />
       )}
+
+      <StockCheckoutModal
+        open={Boolean(buyStockModal)}
+        mode={
+          buyStockModal?.status === "adjusted"
+            ? "adjusted"
+            : buyStockModal
+              ? "blocked"
+              : null
+        }
+        result={buyStockModal}
+        loading={buyStockLoading}
+        onConfirm={() => {
+          const orderQty = buyStockModal?.orderItems[0]?.quantity;
+          if (!orderQty) {
+            setBuyStockModal(null);
+            return;
+          }
+          addToCart(product.id, orderQty);
+          setBuyStockModal(null);
+          router.push("/checkout");
+        }}
+        onClose={() => setBuyStockModal(null)}
+      />
     </>
   );
 }

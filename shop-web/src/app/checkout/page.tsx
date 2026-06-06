@@ -4,9 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { StockCheckoutModal } from "@/components/StockCheckoutModal";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { getCart, saveCart } from "@/lib/cart-store";
+import {
+  checkOrderStock,
+  persistStockAdjustments,
+  type StockCheckResult,
+} from "@/lib/stock-checkout";
 import {
   profileSummary,
   type PaymentChannel,
@@ -23,6 +29,10 @@ export default function CheckoutPage() {
   const [profiles, setProfiles] = useState<PaymentProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
+  const [stockModal, setStockModal] = useState<{
+    mode: "blocked" | "adjusted";
+    result: StockCheckResult;
+  } | null>(null);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -84,18 +94,48 @@ export default function CheckoutPage() {
   const shippingFee = calcCartShippingFee(lines);
   const total = subtotal + shippingFee;
 
+  async function reloadLinesFromCart() {
+    const cart = getCart();
+    if (!cart.length) {
+      router.replace("/bag");
+      return;
+    }
+    const { products } = await api<{ products: Product[] }>("/api/products");
+    setLines(
+      cart
+        .map((c) => {
+          const product = products.find((p) => p.id === c.productId);
+          return product ? { ...c, product } : null;
+        })
+        .filter(Boolean) as (CartItem & { product: Product })[],
+    );
+  }
+
   async function placeOrder(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
+      const token = getToken();
+      const items = lines.map((l) => ({
+        productId: l.productId,
+        quantity: l.quantity,
+      }));
+
+      const preview = await checkOrderStock(items, token);
+      if (preview.status === "blocked") {
+        setStockModal({ mode: "blocked", result: preview });
+        return;
+      }
+      if (preview.status === "adjusted") {
+        setStockModal({ mode: "adjusted", result: preview });
+        return;
+      }
+
       const data = await api<{ order: Order }>("/api/orders", {
         method: "POST",
-        token: getToken(),
+        token,
         body: JSON.stringify({
-          items: lines.map((l) => ({
-            productId: l.productId,
-            quantity: l.quantity,
-          })),
+          items,
           shipping: form,
           paymentMethod: form.paymentMethod,
           paymentProfileId: form.paymentProfileId || undefined,
@@ -104,10 +144,29 @@ export default function CheckoutPage() {
       saveCart([]);
       router.push(`/order/${data.order.id}`);
     } catch (err) {
+      const e = err as Error & { code?: string; stock?: StockCheckResult };
+      if (e.code === "STOCK_UNAVAILABLE" && e.stock) {
+        setStockModal({
+          mode: e.stock.status === "blocked" ? "blocked" : "adjusted",
+          result: e.stock,
+        });
+        return;
+      }
       alert(err instanceof Error ? err.message : "주문 실패");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function applyStockAndContinue() {
+    if (!stockModal?.result.orderItems.length) {
+      setStockModal(null);
+      router.replace("/bag");
+      return;
+    }
+    persistStockAdjustments(getCart(), stockModal.result.orderItems);
+    setStockModal(null);
+    await reloadLinesFromCart();
   }
 
   if (!lines.length) return <p className="py-20 text-center text-sm text-gray-500">불러오는 중...</p>;
@@ -242,6 +301,15 @@ export default function CheckoutPage() {
           </button>
         </div>
       </form>
+
+      <StockCheckoutModal
+        open={Boolean(stockModal)}
+        mode={stockModal?.mode ?? null}
+        result={stockModal?.result ?? null}
+        loading={loading}
+        onConfirm={() => void applyStockAndContinue()}
+        onClose={() => setStockModal(null)}
+      />
     </div>
   );
 }

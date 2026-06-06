@@ -269,7 +269,7 @@ export default function ErpFilterCatalogPage() {
   return (
     <ErpPageShell
       title="필터 카데고리"
-      description="쇼핑몰 상품 목록 좌측 프레임(프레임왼쪽 카데고리)에 표시되는 필터 항목과 카테고리 옵션을 관리합니다."
+      description="쇼핑몰 상품 목록 좌측 맞춤 필터에 표시되는 항목과 카테고리 옵션을 관리합니다."
     >
       {errorMsg ? <p className="mb-2 text-sm text-red-600">{errorMsg}</p> : null}
       {loading ? (
@@ -277,7 +277,7 @@ export default function ErpFilterCatalogPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">프레임왼쪽 카데고리 · 필터 항목</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">맞춤 필터 · 필터 항목</h3>
             <p className="mb-3 text-xs text-gray-500">
               항목을 클릭하면 오른쪽에서 해당 필터의 옵션을 관리할 수 있습니다. 표시 이름만 수정할 수 있으며 코드는
               고정됩니다.
@@ -356,7 +356,7 @@ export default function ErpFilterCatalogPage() {
             <p className="mb-3 text-xs text-gray-500">
               {hasOptionList
                 ? "쇼핑몰 드롭다운에 표시될 선택지를 추가·수정·삭제합니다."
-                : "가격·매각(SALE) 항목은 쇼핑몰에서 직접 입력·체크로 사용됩니다."}
+                : "가격·할인 상품만 항목은 쇼핑몰에서 직접 입력·체크로 사용됩니다."}
             </p>
 
             {hasOptionList ? (
@@ -377,7 +377,7 @@ export default function ErpFilterCatalogPage() {
             )}
 
             <p className="mt-4 text-xs text-gray-400">
-              쇼핑몰 좌측 프레임 제목은 &quot;프레임왼쪽 카데고리&quot;로 표시됩니다.
+              쇼핑몰 좌측 필터 제목은 &quot;맞춤 필터&quot;로 표시됩니다.
             </p>
           </section>
         </div>

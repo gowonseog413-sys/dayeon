@@ -10,9 +10,8 @@ import { articleCategoryKey, localizeArticle } from "@/i18n/article-content";
 import { api } from "@/lib/api";
 import type { Article } from "@/lib/types";
 
-const FILTER_IDS = ["all", "beauty-lifestyle", "community", "reviews", "tips"] as const;
-
 type Pagination = { page: number; limit: number; total: number; totalPages: number };
+type ArticleCategory = { id: string; label: string };
 
 function buildQuery(category: string) {
   const p = new URLSearchParams();
@@ -27,6 +26,7 @@ function ArticlesList() {
   const category = searchParams.get("category") || "all";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [categories, setCategories] = useState<ArticleCategory[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 6,
@@ -34,14 +34,20 @@ function ArticlesList() {
     totalPages: 1,
   });
 
-  const filters = useMemo(
-    () =>
-      FILTER_IDS.map((id) => ({
-        id,
-        label: t(articleCategoryKey(id) ?? "articles.cat.all"),
-      })),
-    [t],
-  );
+  useEffect(() => {
+    api<{ categories: ArticleCategory[] }>("/api/articles/categories")
+      .then((d) => setCategories(d.categories))
+      .catch(() => setCategories([]));
+  }, []);
+
+  const filters = useMemo(() => {
+    const all = { id: "all", label: t("articles.cat.all") };
+    const rest = categories.map((c) => {
+      const key = articleCategoryKey(c.id);
+      return { id: c.id, label: key ? t(key) : c.label };
+    });
+    return [all, ...rest];
+  }, [categories, t]);
 
   useEffect(() => {
     const params = new URLSearchParams();
