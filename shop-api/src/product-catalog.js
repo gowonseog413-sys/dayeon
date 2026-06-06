@@ -3,22 +3,22 @@
 export const DEFAULT_CATEGORY_TREE = [
   {
     id: "contact-lenses",
-    label: "콘택트렌즈",
+    label: "컬러렌즈",
     sortOrder: 1,
     children: [
       {
         id: "all",
-        label: "모든 콘택트렌즈",
+        label: "전체 렌즈 보기",
         sortOrder: 1,
         href: "/catalog?category=contact-lenses",
         children: [],
       },
       {
         id: "brand",
-        label: "브랜드별 쇼핑",
+        label: "브랜드로 보기",
         sortOrder: 2,
         children: [
-          { id: "bloominc", label: "블루밍크", sortOrder: 1 },
+          { id: "bloominc", label: "Bloominc", sortOrder: 1 },
           { id: "eyesm", label: "Eyesm", sortOrder: 2 },
           { id: "eos", label: "EOS", sortOrder: 3 },
           { id: "kitty-kawaii", label: "키티 카와이", sortOrder: 4 },
@@ -27,21 +27,21 @@ export const DEFAULT_CATEGORY_TREE = [
       },
       {
         id: "look",
-        label: "보기로 쇼핑하기",
+        label: "스타일로 보기",
         sortOrder: 3,
         children: [
-          { id: "natural", label: "내추럴 룩", sortOrder: 1 },
-          { id: "no-ring", label: "링 렌즈 없음", sortOrder: 2 },
-          { id: "with-ring", label: "링 렌즈와 함께", sortOrder: 3 },
-          { id: "big-eye", label: "빅 아이 효과", sortOrder: 4 },
-          { id: "wedding", label: "웨딩 렌즈", sortOrder: 5 },
-          { id: "bright", label: "브라이트 렌즈", sortOrder: 6 },
-          { id: "sensitive", label: "민감한 눈", sortOrder: 7 },
+          { id: "natural", label: "자연스러운 눈빛", sortOrder: 1 },
+          { id: "no-ring", label: "링 없는 렌즈", sortOrder: 2 },
+          { id: "with-ring", label: "또렷한 링 효과", sortOrder: 3 },
+          { id: "big-eye", label: "또렷한 눈매", sortOrder: 4 },
+          { id: "wedding", label: "웨딩·특별한 날", sortOrder: 5 },
+          { id: "bright", label: "환한 눈빛", sortOrder: 6 },
+          { id: "sensitive", label: "민감한 눈용", sortOrder: 7 },
         ],
       },
       {
         id: "color",
-        label: "색상별 쇼핑",
+        label: "컬러로 보기",
         sortOrder: 4,
         children: [
           { id: "almond", label: "아몬드", sortOrder: 1, swatch: "#d4a574" },
@@ -54,7 +54,7 @@ export const DEFAULT_CATEGORY_TREE = [
       },
       {
         id: "diameter",
-        label: "직경별 쇼핑",
+        label: "직경으로 보기",
         sortOrder: 5,
         children: [
           { id: "14-0", label: "14.00 mm", sortOrder: 1 },
@@ -66,32 +66,32 @@ export const DEFAULT_CATEGORY_TREE = [
   },
   {
     id: "accessories",
-    label: "렌즈 액세서리",
+    label: "케어·용품",
     sortOrder: 2,
     children: [
-      { id: "drops", label: "안약", sortOrder: 1, href: "/catalog?category=solutions&sub=drops", children: [] },
-      { id: "mps", label: "다목적 솔루션", sortOrder: 2, href: "/catalog?category=solutions&sub=mps", children: [] },
-      { id: "travel", label: "여행 키트", sortOrder: 3, href: "/catalog?category=accessories&sub=travel", children: [] },
-      { id: "cleaner", label: "렌즈 클리너", sortOrder: 4, href: "/catalog?category=accessories&sub=cleaner", children: [] },
+      { id: "drops", label: "인공눈물·안약", sortOrder: 1, href: "/catalog?category=solutions&sub=drops", children: [] },
+      { id: "mps", label: "렌즈 세척액", sortOrder: 2, href: "/catalog?category=solutions&sub=mps", children: [] },
+      { id: "travel", label: "휴대용 키트", sortOrder: 3, href: "/catalog?category=accessories&sub=travel", children: [] },
+      { id: "cleaner", label: "렌즈 세정용품", sortOrder: 4, href: "/catalog?category=accessories&sub=cleaner", children: [] },
     ],
   },
   {
     id: "new-arrivals",
-    label: "신규 도착",
+    label: "신상품",
     sortOrder: 3,
     href: "/catalog?section=best-seller",
     children: [],
   },
   {
     id: "bundles",
-    label: "번들",
+    label: "알뜰 세트",
     sortOrder: 4,
     href: "/catalog?category=bundles",
     children: [],
   },
   {
     id: "bloominc",
-    label: "블루밍크",
+    label: "다연 추천",
     sortOrder: 5,
     href: "/catalog?section=bloominc",
     children: [],
@@ -99,19 +99,19 @@ export const DEFAULT_CATEGORY_TREE = [
 ];
 
 export const DEFAULT_PRODUCT_SECTIONS = [
-  { id: "bloominc", label: "블루밍크", sortOrder: 1 },
-  { id: "best-seller", label: "신규 도착 / 베스트", sortOrder: 2 },
-  { id: "solutions", label: "솔루션", sortOrder: 3 },
-  { id: "accessories", label: "액세서리", sortOrder: 4 },
-  { id: "bundles", label: "번들", sortOrder: 5 },
+  { id: "bloominc", label: "다연 추천", sortOrder: 1 },
+  { id: "best-seller", label: "베스트 · 신상", sortOrder: 2 },
+  { id: "solutions", label: "렌즈 케어", sortOrder: 3 },
+  { id: "accessories", label: "렌즈 용품", sortOrder: 4 },
+  { id: "bundles", label: "알뜰 세트", sortOrder: 5 },
 ];
 
 /** 쇼핑몰 좌측 프레임(프레임왼쪽 카데고리) 필터 카테고리 */
 export const DEFAULT_FILTER_CATEGORIES = [
-  { id: "contact-lenses", label: "소프트렌즈 (콘택트렌즈)", sortOrder: 1 },
-  { id: "solutions", label: "솔루션 및 드롭", sortOrder: 2 },
-  { id: "accessories", label: "렌즈 액세서리", sortOrder: 3 },
-  { id: "bundles", label: "번들", sortOrder: 4 },
+  { id: "contact-lenses", label: "컬러렌즈", sortOrder: 1 },
+  { id: "solutions", label: "렌즈 케어", sortOrder: 2 },
+  { id: "accessories", label: "렌즈 용품", sortOrder: 3 },
+  { id: "bundles", label: "알뜰 세트", sortOrder: 4 },
 ];
 
 /** 쇼핑몰 좌측 프레임 필터 항목 라벨 */
@@ -128,11 +128,118 @@ export const DEFAULT_FILTER_FIELDS = [
   { id: "saleOnly", label: "매각 (SALE)", sortOrder: 10 },
 ];
 
+/** 카테고리 외 필터 항목별 드롭다운 옵션 (category는 filterCategories 사용) */
+export const FILTER_OPTION_FIELD_IDS = [
+  "brand",
+  "color",
+  "diameter",
+  "waterContent",
+  "prescription",
+  "baseCurve",
+  "lifespan",
+];
+
+export const DEFAULT_FILTER_FIELD_OPTIONS = {
+  brand: [
+    { id: "Bio True", label: "Bio True", sortOrder: 1 },
+    { id: "Bloominc", label: "Bloominc", sortOrder: 2 },
+    { id: "Bundle Accessories", label: "Bundle Accessories", sortOrder: 3 },
+    { id: "Clear Care", label: "Clear Care", sortOrder: 4 },
+    { id: "Eyesm", label: "Eyesm", sortOrder: 5 },
+    { id: "Lens Care", label: "Lens Care", sortOrder: 6 },
+    { id: "Opti-Free", label: "Opti-Free", sortOrder: 7 },
+    { id: "Renu", label: "Renu", sortOrder: 8 },
+    { id: "Rohto", label: "Rohto", sortOrder: 9 },
+    { id: "Soft Drops", label: "Soft Drops", sortOrder: 10 },
+  ],
+  color: [
+    { id: "almond", label: "아몬드", sortOrder: 1 },
+    { id: "black", label: "검정", sortOrder: 2 },
+    { id: "brown", label: "브라운", sortOrder: 3 },
+    { id: "choco", label: "초코", sortOrder: 4 },
+    { id: "gray", label: "그레이", sortOrder: 5 },
+    { id: "clear", label: "클리어", sortOrder: 6 },
+  ],
+  diameter: [
+    { id: "14.0", label: "14.00 mm", sortOrder: 1 },
+    { id: "14.2", label: "14.20 mm", sortOrder: 2 },
+    { id: "14.5", label: "14.50 mm", sortOrder: 3 },
+  ],
+  waterContent: [
+    { id: "48", label: "48%", sortOrder: 1 },
+    { id: "55", label: "55%", sortOrder: 2 },
+    { id: "58", label: "58%", sortOrder: 3 },
+  ],
+  prescription: [
+    { id: "normal", label: "일반", sortOrder: 1 },
+    { id: "myopia", label: "근시", sortOrder: 2 },
+  ],
+  baseCurve: [
+    { id: "8.6", label: "8.60 mm", sortOrder: 1 },
+    { id: "8.7", label: "8.70 mm", sortOrder: 2 },
+    { id: "8.8", label: "8.80 mm", sortOrder: 3 },
+  ],
+  lifespan: [
+    { id: "daily", label: "일일", sortOrder: 1 },
+    { id: "1month", label: "1개월", sortOrder: 2 },
+    { id: "3months", label: "3개월", sortOrder: 3 },
+    { id: "6months", label: "6개월", sortOrder: 4 },
+    { id: "1year", label: "1년", sortOrder: 5 },
+  ],
+};
+
+function ensureFilterFieldOptions(db) {
+  if (!db.productCatalog.filterFieldOptions || typeof db.productCatalog.filterFieldOptions !== "object") {
+    db.productCatalog.filterFieldOptions = {};
+  }
+  for (const fieldId of FILTER_OPTION_FIELD_IDS) {
+    const list = db.productCatalog.filterFieldOptions[fieldId];
+    if (!Array.isArray(list) || list.length === 0) {
+      db.productCatalog.filterFieldOptions[fieldId] = (DEFAULT_FILTER_FIELD_OPTIONS[fieldId] || []).map(
+        (s) => ({ ...s }),
+      );
+    }
+  }
+}
+
 function cloneTree(nodes) {
   return nodes.map((n) => ({
     ...n,
     children: Array.isArray(n.children) ? cloneTree(n.children) : [],
   }));
+}
+
+function labelMapFromTree(nodes, map = new Map()) {
+  for (const n of nodes || []) {
+    if (n.id && n.label) map.set(n.id, n.label);
+    labelMapFromTree(n.children, map);
+  }
+  return map;
+}
+
+/** 기본 문구 변경 시 기존 DB 라벨도 id 기준으로 동기화 */
+function syncDisplayLabels(db) {
+  const treeLabels = labelMapFromTree(DEFAULT_CATEGORY_TREE);
+  const walk = (nodes) => {
+    for (const n of nodes || []) {
+      const next = treeLabels.get(n.id);
+      if (next) n.label = next;
+      walk(n.children);
+    }
+  };
+  walk(db.productCatalog.categoryTree);
+
+  const sectionLabels = new Map(DEFAULT_PRODUCT_SECTIONS.map((s) => [s.id, s.label]));
+  for (const s of db.productCatalog.sections || []) {
+    const next = sectionLabels.get(s.id);
+    if (next) s.label = next;
+  }
+
+  const filterLabels = new Map(DEFAULT_FILTER_CATEGORIES.map((c) => [c.id, c.label]));
+  for (const c of db.productCatalog.filterCategories || []) {
+    const next = filterLabels.get(c.id);
+    if (next) c.label = next;
+  }
 }
 
 export function ensureProductCatalog(db) {
@@ -154,6 +261,8 @@ export function ensureProductCatalog(db) {
   if (!Array.isArray(db.productCatalog.filterFields) || db.productCatalog.filterFields.length === 0) {
     db.productCatalog.filterFields = DEFAULT_FILTER_FIELDS.map((s) => ({ ...s }));
   }
+  ensureFilterFieldOptions(db);
+  syncDisplayLabels(db);
 }
 
 const BRAND_QUERY = {
@@ -225,11 +334,16 @@ export function listCatalog(db) {
         ...n,
         children: n.children ? sortTree(n.children) : [],
       }));
+  const filterFieldOptions = {};
+  for (const fieldId of FILTER_OPTION_FIELD_IDS) {
+    filterFieldOptions[fieldId] = [...(db.productCatalog.filterFieldOptions[fieldId] || [])].sort(sort);
+  }
   return {
     categoryTree: enrichTreeHrefs(sortTree(db.productCatalog.categoryTree)),
     sections: [...db.productCatalog.sections].sort(sort),
     filterCategories: [...db.productCatalog.filterCategories].sort(sort),
     filterFields: [...db.productCatalog.filterFields].sort(sort),
+    filterFieldOptions,
   };
 }
 
@@ -311,4 +425,102 @@ export function getFilterCategories(db) {
 export function getFilterFields(db) {
   ensureProductCatalog(db);
   return db.productCatalog.filterFields;
+}
+
+export function getFilterFieldOptions(db, fieldId) {
+  ensureProductCatalog(db);
+  if (!FILTER_OPTION_FIELD_IDS.includes(fieldId)) return null;
+  return db.productCatalog.filterFieldOptions[fieldId];
+}
+
+export function productsUsingFilterOption(db, fieldId, optionId) {
+  return db.products.filter((p) => {
+    if (fieldId === "brand") return p.brand === optionId;
+    const cat = p.catalog;
+    if (!cat) return false;
+    if (fieldId === "color") return cat.colorFamily === optionId;
+    return cat[fieldId] === optionId;
+  });
+}
+
+export function migrateFilterOptionId(db, fieldId, oldId, newId, label) {
+  db.products.forEach((p) => {
+    if (fieldId === "brand") {
+      if (p.brand === oldId) p.brand = label || newId;
+      return;
+    }
+    if (!p.catalog) return;
+    if (fieldId === "color") {
+      if (p.catalog.colorFamily === oldId) p.catalog.colorFamily = newId;
+    } else if (p.catalog[fieldId] === oldId) {
+      p.catalog[fieldId] = newId;
+    }
+  });
+}
+
+export function countFilterFieldOptions(db, fieldId) {
+  ensureProductCatalog(db);
+  if (fieldId === "category") return getFilterCategories(db).length;
+  if (FILTER_OPTION_FIELD_IDS.includes(fieldId)) {
+    return (getFilterFieldOptions(db, fieldId) || []).length;
+  }
+  return 0;
+}
+
+/** 필터 항목(브랜드·카테고리 등)에 연결된 상품 */
+export function productsUsingFilterField(db, fieldId) {
+  ensureProductCatalog(db);
+  const seen = new Set();
+  const out = [];
+
+  const push = (list) => {
+    for (const p of list) {
+      if (!seen.has(p.id)) {
+        seen.add(p.id);
+        out.push(p);
+      }
+    }
+  };
+
+  if (fieldId === "category") {
+    for (const cat of getFilterCategories(db)) {
+      push(productsUsingFilterCategory(db, cat.id));
+    }
+    return out;
+  }
+
+  if (FILTER_OPTION_FIELD_IDS.includes(fieldId)) {
+    const options = getFilterFieldOptions(db, fieldId) || [];
+    for (const opt of options) {
+      push(productsUsingFilterOption(db, fieldId, opt.id));
+    }
+    return out;
+  }
+
+  return out;
+}
+
+export function deleteFilterFieldCascade(db, fieldId) {
+  ensureProductCatalog(db);
+  const fields = getFilterFields(db);
+  const idx = fields.findIndex((f) => f.id === fieldId);
+  if (idx === -1) return { error: "NOT_FOUND" };
+
+  const removedOptions = countFilterFieldOptions(db, fieldId);
+  const products = productsUsingFilterField(db, fieldId);
+  const removeIds = new Set(products.map((p) => p.id));
+  db.products = db.products.filter((p) => !removeIds.has(p.id));
+
+  if (fieldId === "category") {
+    db.productCatalog.filterCategories = [];
+  } else if (FILTER_OPTION_FIELD_IDS.includes(fieldId)) {
+    db.productCatalog.filterFieldOptions[fieldId] = [];
+  }
+
+  fields.splice(idx, 1);
+  return {
+    deleted: fieldId,
+    removedProducts: removeIds.size,
+    removedOptions,
+  };
 }

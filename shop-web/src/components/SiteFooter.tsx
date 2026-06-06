@@ -16,7 +16,7 @@ function SiteFooterInner() {
   const { t } = useI18n();
 
   return (
-    <footer className="bg-white">
+    <footer className="site-footer relative bg-white">
       <div className="mx-auto hidden max-w-6xl gap-8 px-4 py-12 text-sm md:grid md:grid-cols-4">
         <div>
           <ul className="space-y-2 text-gray-600">
@@ -34,7 +34,7 @@ function SiteFooterInner() {
             <li><Link href="/support/faq">{t("footer.faq")}</Link></li>
             <li><Link href="/support/shipping">{t("footer.shipping")}</Link></li>
             <li><Link href="/support/returns">{t("footer.returns")}</Link></li>
-            <li><Link href={`mailto:${t("brand.email")}`}>{t("footer.contact")}</Link></li>
+            <li><Link href="/profile/inquiries">{t("footer.contact")}</Link></li>
           </ul>
         </div>
         <div>
@@ -51,7 +51,7 @@ function SiteFooterInner() {
       <div className="mx-auto flex max-w-6xl justify-center px-4 py-6 md:hidden">
         <FooterSocial />
       </div>
-      <div className="bg-[var(--pink-bg)] py-3 text-center text-xs text-gray-600">
+      <div className="site-footer-bar bg-[var(--pink-bg)] py-3 text-center text-xs text-gray-600">
         {t("footer.copyright")}
       </div>
     </footer>

@@ -12,11 +12,19 @@ import adminUploadRoutes from "./routes/admin-upload.js";
 import contentRoutes from "./routes/content.js";
 import settingsRoutes from "./routes/settings.js";
 import cartRoutes from "./routes/cart.js";
+import wishlistRoutes from "./routes/wishlist.js";
 import paymentMethodsRoutes from "./routes/payment-methods.js";
 import paymentProfilesRoutes from "./routes/payment-profiles.js";
 import adminPaymentsRoutes from "./routes/admin-payments.js";
 import adminCatalogRoutes from "./routes/admin-catalog.js";
 import catalogRoutes from "./routes/catalog.js";
+import reviewRoutes from "./routes/reviews.js";
+import eventPopupRoutes from "./routes/event-popups.js";
+import adminEventPopupRoutes from "./routes/admin-event-popups.js";
+import inquiryRoutes from "./routes/inquiries.js";
+import adminInquiryRoutes from "./routes/admin-inquiries.js";
+import messageRoutes from "./routes/messages.js";
+import pointsRoutes from "./routes/points.js";
 
 export function createApp() {
   const app = express();
@@ -46,12 +54,14 @@ export function createApp() {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/cart", cartRoutes);
+  app.use("/api/wishlist", wishlistRoutes);
   app.use("/api/catalog", catalogRoutes);
   app.use("/api/payment-methods", paymentMethodsRoutes);
   app.use("/api/payment-profiles", paymentProfilesRoutes);
   app.use("/api/admin/payments", adminPaymentsRoutes);
   app.use("/api/admin/catalog", adminCatalogRoutes);
   app.use("/api/products", productRoutes);
+  app.use("/api/reviews", reviewRoutes);
   app.use("/api/orders", orderRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/articles", articleRoutes);
@@ -60,6 +70,12 @@ export function createApp() {
   app.use("/api/admin/upload", adminUploadRoutes);
   app.use("/api/content", contentRoutes);
   app.use("/api/settings", settingsRoutes);
+  app.use("/api/event-popups", eventPopupRoutes);
+  app.use("/api/admin/event-popups", adminEventPopupRoutes);
+  app.use("/api/inquiries", inquiryRoutes);
+  app.use("/api/admin/inquiries", adminInquiryRoutes);
+  app.use("/api/messages", messageRoutes);
+  app.use("/api/points", pointsRoutes);
 
   return app;
 }

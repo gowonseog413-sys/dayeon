@@ -13,7 +13,9 @@ import {
 import { findOrCreateGoogleUser } from "../oauth/users.js";
 import { recordUserLogin } from "../user-login.js";
 import { ensureMemberSettings, referralCodeForUser } from "../member-settings.js";
-import { computeUserTier } from "../user-tier.js";
+import { memberName, recordPointTransaction } from "../point-transactions.js";
+import { applySignupBonus } from "../points-rewards.js";
+import { syncUserTier } from "../user-tier.js";
 
 const router = Router();
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3600";
@@ -36,8 +38,6 @@ router.post("/register", async (req, res) => {
   ensureMemberSettings(db);
   const refSettings = db.settings.referral;
   let referredBy = null;
-  let signupPoints = 0;
-
   if (referralCode && refSettings.enabled) {
     const code = String(referralCode).trim().toUpperCase();
     const referrer = db.users.find(
@@ -45,7 +45,6 @@ router.post("/register", async (req, res) => {
     );
     if (referrer && referrer.role !== "admin") {
       referredBy = referrer.id;
-      signupPoints = refSettings.refereeReward || 0;
     }
   }
 
@@ -59,7 +58,8 @@ router.post("/register", async (req, res) => {
     firstName,
     lastName: lastName || "",
     role: "customer",
-    points: signupPoints,
+    points: 0,
+    tier: "bronze",
     referredBy,
     loginCount: 0,
     createdAt: new Date().toISOString(),
@@ -69,14 +69,33 @@ router.post("/register", async (req, res) => {
   updateDb((d) => {
     ensureMemberSettings(d);
     d.users.push(user);
+    applySignupBonus(d, user);
     if (referredBy && refSettings.enabled) {
       const referrer = d.users.find((u) => u.id === referredBy);
-      if (referrer) {
-        referrer.points = (Number(referrer.points) || 0) + (refSettings.referrerReward || 0);
-        referrer.tier = computeUserTier(referrer.points, d.settings.points);
+      const referrerReward = Math.max(0, Math.floor(Number(refSettings.referrerReward) || 0));
+      if (referrer && referrerReward > 0) {
+        referrer.points = (Number(referrer.points) || 0) + referrerReward;
+        syncUserTier(d, referrer.id, d.settings.points);
+        recordPointTransaction(d, {
+          userId: referrer.id,
+          amount: referrerReward,
+          type: "referral_referrer",
+          label: `${memberName(user)} 추천인 적립`,
+          refId: `referral-referrer-${user.id}`,
+          createdAt: user.createdAt,
+        });
       }
-      if (signupPoints > 0) {
-        user.tier = computeUserTier(signupPoints, d.settings.points);
+      const refereeReward = Math.max(0, Math.floor(Number(refSettings.refereeReward) || 0));
+      if (refereeReward > 0) {
+        user.points = (Number(user.points) || 0) + refereeReward;
+        recordPointTransaction(d, {
+          userId: user.id,
+          amount: refereeReward,
+          type: "referral_referee",
+          label: "추천인 가입 적립",
+          refId: `referral-referee-${user.id}`,
+          createdAt: user.createdAt,
+        });
       }
     }
   });
@@ -161,8 +180,20 @@ router.get("/me", authRequired, (req, res) => {
   res.json({ user: publicUser(user) });
 });
 
+function normalizeShippingAddress(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const name = String(raw.name || "").trim();
+  const phone = String(raw.phone || "").trim();
+  const address = String(raw.address || "").trim();
+  const city = String(raw.city || "Jakarta").trim() || "Jakarta";
+  const postalCode = String(raw.postalCode || "").trim();
+  if (!name && !phone && !address) return null;
+  return { name, phone, address, city, postalCode };
+}
+
 router.patch("/me", authRequired, (req, res) => {
-  const { name, email, birthDate, phone, address } = req.body ?? {};
+  const { name, email, birthDate, phone, address, shippingAddress, addressSameAsShipping } =
+    req.body ?? {};
   const db = readDb();
   const idx = db.users.findIndex((u) => u.id === req.user.sub);
   if (idx < 0) return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
@@ -204,8 +235,21 @@ router.patch("/me", authRequired, (req, res) => {
   if (phone !== undefined) {
     user.phone = phone ? String(phone).trim() : null;
   }
+  if (shippingAddress !== undefined) {
+    user.shippingAddress = normalizeShippingAddress(shippingAddress);
+  }
+  if (addressSameAsShipping !== undefined) {
+    user.addressSameAsShipping = Boolean(addressSameAsShipping);
+  }
   if (address !== undefined) {
     user.address = address ? String(address).trim() : null;
+  }
+
+  if (user.addressSameAsShipping && user.shippingAddress?.address) {
+    user.address = user.shippingAddress.address;
+    if (!user.phone && user.shippingAddress.phone) {
+      user.phone = user.shippingAddress.phone;
+    }
   }
 
   user.updatedAt = new Date().toISOString();
@@ -230,8 +274,10 @@ function publicUser(u) {
     birthDate: u.birthDate || null,
     phone: u.phone || null,
     address: u.address || null,
+    shippingAddress: u.shippingAddress || null,
+    addressSameAsShipping: Boolean(u.addressSameAsShipping),
     points,
-    tier: u.tier || computeUserTier(points),
+    tier: u.tier || "bronze",
   };
 }
 

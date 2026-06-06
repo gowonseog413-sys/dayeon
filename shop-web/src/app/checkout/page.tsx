@@ -12,7 +12,9 @@ import {
   type PaymentChannel,
   type PaymentProfile,
 } from "@/lib/payment-methods";
-import type { CartItem, Order, Product } from "@/lib/types";
+import { hasSavedShipping, shippingFromUser } from "@/lib/shipping-address";
+import { calcCartShippingFee, formatOrderShippingLabel } from "@/lib/shipping-fee";
+import type { CartItem, Order, Product, User } from "@/lib/types";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function CheckoutPage() {
   const [channels, setChannels] = useState<PaymentChannel[]>([]);
   const [profiles, setProfiles] = useState<PaymentProfile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -45,8 +48,9 @@ export default function CheckoutPage() {
       api<{ products: Product[] }>("/api/products"),
       api<{ channels: PaymentChannel[] }>("/api/payment-methods"),
       api<{ profiles: PaymentProfile[] }>("/api/payment-profiles", { token }),
+      api<{ user: User }>("/api/auth/me", { token }),
     ])
-      .then(([productsRes, channelsRes, profilesRes]) => {
+      .then(([productsRes, channelsRes, profilesRes, userRes]) => {
         setLines(
           cart
             .map((c) => {
@@ -59,17 +63,25 @@ export default function CheckoutPage() {
         setProfiles(profilesRes.profiles);
         const defaultProfile = profilesRes.profiles.find((p) => p.isDefault);
         const firstChannel = channelsRes.channels[0]?.type || "credit_card";
+        const ship = shippingFromUser(userRes.user);
+        const hasShip = hasSavedShipping(userRes.user);
         setForm((f) => ({
           ...f,
+          name: ship.name,
+          phone: ship.phone,
+          address: ship.address,
+          city: ship.city,
+          postalCode: ship.postalCode,
           paymentMethod: defaultProfile?.channelType || firstChannel,
           paymentProfileId: defaultProfile?.id || "",
         }));
+        setPrefilled(hasShip);
       })
       .catch(() => router.replace("/bag"));
   }, [router]);
 
   const subtotal = lines.reduce((s, l) => s + l.product.priceSale * l.quantity, 0);
-  const shippingFee = subtotal >= 500000 ? 0 : 10000;
+  const shippingFee = calcCartShippingFee(lines);
   const total = subtotal + shippingFee;
 
   async function placeOrder(e: React.FormEvent) {
@@ -106,6 +118,11 @@ export default function CheckoutPage() {
       <form onSubmit={placeOrder} className="grid gap-10 md:grid-cols-2">
         <div className="space-y-4">
           <h2 className="font-medium">배송 정보</h2>
+          {prefilled && (
+            <p className="rounded-lg border border-[var(--pink-border)] bg-[var(--pink-bg-soft)] px-3 py-2 text-xs text-[var(--pink-deep)]">
+              저장된 배송 정보가 적용되었습니다. 필요하면 수정할 수 있습니다.
+            </p>
+          )}
           {(["name", "phone", "address", "city", "postalCode"] as const).map((key) => (
             <label key={key} className="block text-sm">
               {key === "name"
@@ -179,7 +196,7 @@ export default function CheckoutPage() {
             </label>
           )}
           <p className="text-xs text-gray-400">
-            <Link href="/profile/payment" className="text-[var(--pink-accent)] hover:underline">
+            <Link href="/profile?tab=payment" className="text-[var(--pink-accent)] hover:underline">
               결제수단관리
             </Link>
             에서 카드·GoPay·가상계좌를 미리 등록할 수 있습니다.
@@ -209,7 +226,7 @@ export default function CheckoutPage() {
             </p>
             <p className="flex justify-between text-gray-600">
               <span>배송비</span>
-              <span>{shippingFee === 0 ? "무료" : formatRp(shippingFee)}</span>
+              <span>{formatOrderShippingLabel(shippingFee)}</span>
             </p>
             <p className="flex justify-between text-lg font-semibold">
               <span>합계</span>

@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { readDb, updateDb } from "../db.js";
-import { referralCodeForUser } from "../member-settings.js";
+import { ensureMemberSettings, referralCodeForUser } from "../member-settings.js";
+import { applySignupBonus } from "../points-rewards.js";
 
 export function findOrCreateGoogleUser(profile) {
   const email = profile.email?.toLowerCase();
@@ -37,13 +38,16 @@ export function findOrCreateGoogleUser(profile) {
     avatarUrl: profile.picture || null,
     role: "customer",
     points: 0,
+    tier: "bronze",
     loginCount: 0,
     createdAt: new Date().toISOString(),
   };
   newUser.referralCode = referralCodeForUser(newUser);
 
   updateDb((d) => {
+    ensureMemberSettings(d);
     d.users.push(newUser);
+    applySignupBonus(d, newUser);
   });
 
   return newUser;

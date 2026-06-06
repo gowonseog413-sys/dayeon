@@ -29,7 +29,7 @@ type Props = {
 export function CmsContentPage({ kind, pageKey, staticKey, twoColumn, sideImage }: Props) {
   const { locale } = useI18n();
   const { theme } = useTheme();
-  const showSideImage = sideImage && theme !== "clean";
+  const showSideImage = sideImage && theme === "pink";
   const [page, setPage] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
 

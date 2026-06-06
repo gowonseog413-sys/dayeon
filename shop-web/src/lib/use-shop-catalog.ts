@@ -5,19 +5,13 @@ import { api } from "@/lib/api";
 import {
   CATALOG_STORAGE_KEY,
   CATALOG_UPDATED_EVENT,
+  fallbackCatalog,
+  mergeFilterFieldOptions,
   type CategoryTreeNode,
   type ProductCatalogData,
 } from "@/lib/product-catalog-store";
-import { DEFAULT_CATEGORY_TREE } from "@/lib/default-category-tree";
-import { DEFAULT_FILTER_CATEGORIES, DEFAULT_FILTER_FIELDS } from "@/lib/default-filter-catalog";
-import { PRODUCT_SECTIONS } from "@/lib/erp-catalog";
 
-const fallback: ProductCatalogData = {
-  categoryTree: DEFAULT_CATEGORY_TREE,
-  sections: PRODUCT_SECTIONS.map((s, i) => ({ ...s, sortOrder: i + 1 })),
-  filterCategories: DEFAULT_FILTER_CATEGORIES,
-  filterFields: DEFAULT_FILTER_FIELDS,
-};
+const fallback = fallbackCatalog();
 
 export function useShopCatalog() {
   const [catalog, setCatalog] = useState<ProductCatalogData>(fallback);
@@ -31,9 +25,10 @@ export function useShopCatalog() {
         sections: data.sections?.length ? data.sections : fallback.sections,
         filterCategories: data.filterCategories?.length ? data.filterCategories : fallback.filterCategories,
         filterFields: data.filterFields?.length ? data.filterFields : fallback.filterFields,
+        filterFieldOptions: mergeFilterFieldOptions(data.filterFieldOptions),
       });
     } catch {
-      setCatalog(fallback);
+      setCatalog(fallbackCatalog());
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ComponentProps } from "react";
+import { useErpNavigation } from "@/components/erp/ErpNavigationProvider";
 
 type Props = Omit<ComponentProps<typeof Link>, "prefetch"> & {
   active?: boolean;
@@ -20,6 +21,7 @@ export function ErpNavLink({
   ...rest
 }: Props) {
   const pathname = usePathname();
+  const { startNavigation } = useErpNavigation();
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -49,7 +51,10 @@ export function ErpNavLink({
       scroll={false}
       aria-current={active ? "page" : undefined}
       onClick={(e) => {
-        if (!active) setPending(true);
+        if (!active) {
+          setPending(true);
+          startNavigation();
+        }
         onClick?.(e);
       }}
       className={`${base}${className ? ` ${className}` : ""}${pending ? " opacity-90" : ""}`}

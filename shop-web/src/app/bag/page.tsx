@@ -8,6 +8,7 @@ import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { getCart, removeFromCart } from "@/lib/cart-store";
 import { formatIndonesiaDateTime } from "@/lib/format-indonesia-datetime";
+import { calcCartShippingFee, formatOrderShippingLabel } from "@/lib/shipping-fee";
 import type { CartItem, Product } from "@/lib/types";
 
 const PAGE_SIZE = 10;
@@ -66,6 +67,8 @@ export default function BagPage() {
 
   const pageTotal = pageLines.reduce((s, l) => s + l.product.priceSale * l.quantity, 0);
   const grandTotal = lines.reduce((s, l) => s + l.product.priceSale * l.quantity, 0);
+  const shippingFee = calcCartShippingFee(lines);
+  const orderTotal = grandTotal + shippingFee;
 
   function goCheckout() {
     const token = getToken();
@@ -136,7 +139,10 @@ export default function BagPage() {
       <p className="mt-6 text-right text-sm text-gray-500">
         이 페이지 합계 {formatRp(pageTotal)}
       </p>
-      <p className="text-right text-lg font-semibold">전체 합계 {formatRp(grandTotal)}</p>
+      <p className="text-right text-sm text-gray-500">
+        배송비 {formatOrderShippingLabel(shippingFee)}
+      </p>
+      <p className="text-right text-lg font-semibold">결제 예정 {formatRp(orderTotal)}</p>
 
       {msg && <p className="mt-2 text-center text-sm text-gray-600">{msg}</p>}
 

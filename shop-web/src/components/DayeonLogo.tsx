@@ -4,7 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { LogoSparkleHearts } from "@/components/SparkleHeart";
 import { useTheme } from "@/components/ThemeProvider";
-import { isIndonesiaTheme, isMinimalTheme } from "@/lib/theme";
+import { AquaLogoMark, AquaWaveLine } from "@/components/AquaIcons";
+import { DarkGlowLine, DarkLogoMark } from "@/components/DarkIcons";
+import {
+  isAquaTheme,
+  isDarkTheme,
+  isIndonesiaTheme,
+  isMinimalTheme,
+} from "@/lib/theme";
 
 const LOGO_HEADER_SRC = "/brand/dayeon-logo.png";
 const LOGO_FOOTER_SRC = "/brand/dayeon-logo-footer.png";
@@ -74,6 +81,89 @@ const INDONESIA_TEXT = {
   },
 } as const;
 
+const BRAND_TEXT = {
+  header: {
+    main: "text-[1.38rem] font-bold tracking-tight lowercase",
+    sub: "mt-1 text-[8px] font-light tracking-[0.42em] uppercase",
+  },
+  footer: {
+    main: "text-xl font-bold tracking-tight lowercase",
+    sub: "mt-1 text-[9px] font-light tracking-[0.42em] uppercase",
+  },
+  compact: {
+    main: "text-lg font-bold tracking-tight lowercase",
+    sub: "mt-0.5 text-[7px] font-light tracking-[0.4em] uppercase",
+  },
+} as const;
+
+const AQUA_MARK = {
+  header: "h-9 w-9 sm:h-10 sm:w-10",
+  footer: "h-11 w-11",
+  compact: "h-8 w-8",
+} as const;
+
+const AQUA_WAVE = {
+  header: "h-2 w-[4.5rem]",
+  footer: "h-2 w-[5rem]",
+  compact: "h-1.5 w-[3.5rem]",
+} as const;
+
+const DARK_MARK = {
+  header: "h-9 w-9 sm:h-10 sm:w-10",
+  footer: "h-11 w-11",
+  compact: "h-8 w-8",
+} as const;
+
+const DARK_GLOW = {
+  header: "h-1.5 w-[4.5rem]",
+  footer: "h-1.5 w-[5rem]",
+  compact: "h-1 w-[3.5rem]",
+} as const;
+
+function AquaTextLogo({
+  variant,
+  className = "",
+}: {
+  variant: "header" | "footer" | "compact";
+  className?: string;
+}) {
+  const s = BRAND_TEXT[variant];
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-2.5 leading-none ${className}`}>
+      <AquaLogoMark className={`${AQUA_MARK[variant]} shrink-0`} />
+      <span className="inline-flex flex-col items-start pb-0.5">
+        <span
+          className={`${s.main} bg-gradient-to-r from-sky-800 via-sky-600 to-cyan-500 bg-clip-text text-transparent`}
+        >
+          dayeon
+        </span>
+        <span className={`${s.sub} text-sky-400/90`}>LENSES</span>
+        <AquaWaveLine className={`${AQUA_WAVE[variant]} mt-1.5`} />
+      </span>
+    </span>
+  );
+}
+
+function DarkTextLogo({
+  variant,
+  className = "",
+}: {
+  variant: "header" | "footer" | "compact";
+  className?: string;
+}) {
+  const s = BRAND_TEXT[variant];
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-2.5 leading-none ${className}`}>
+      <DarkLogoMark className={`${DARK_MARK[variant]} shrink-0`} />
+      <span className="inline-flex flex-col items-start pb-0.5">
+        <span className={`${s.main} dark-logo-shine`}>dayeon</span>
+        <span className={`${s.sub} text-[var(--muted)]`}>LENSES</span>
+        <DarkGlowLine className={`${DARK_GLOW[variant]} mt-1.5`} />
+      </span>
+    </span>
+  );
+}
+
 function IndonesiaTextLogo({
   variant,
   className = "",
@@ -97,9 +187,15 @@ export function DayeonLogo({ variant = "header", className = "", href = "/" }: P
   const h = HEIGHT[variant];
   const src = variant === "footer" ? LOGO_FOOTER_SRC : LOGO_HEADER_SRC;
   const isIndonesia = isIndonesiaTheme(theme);
-  const isClean = isMinimalTheme(theme) && !isIndonesia;
+  const isDark = isDarkTheme(theme);
+  const isAqua = isAquaTheme(theme);
+  const isClean = isMinimalTheme(theme) && !isIndonesia && !isAqua;
 
-  const inner = isIndonesia ? (
+  const inner = isDark ? (
+    <DarkTextLogo variant={variant} className={className} />
+  ) : isAqua ? (
+    <AquaTextLogo variant={variant} className={className} />
+  ) : isIndonesia ? (
     <IndonesiaTextLogo variant={variant} className={className} />
   ) : isClean ? (
     <CleanTextLogo variant={variant} className={className} />
@@ -120,13 +216,17 @@ export function DayeonLogo({ variant = "header", className = "", href = "/" }: P
     </span>
   );
 
+  const isTextLogo = isDark || isAqua || isIndonesia || isClean;
+
   if (href) {
     return (
       <Link
         href={href}
         className={`shrink-0 hover:opacity-90 ${
           variant === "header"
-            ? "relative flex h-19 w-30 items-center justify-center overflow-visible"
+            ? isTextLogo
+              ? "relative inline-flex items-center overflow-visible py-1"
+              : "relative flex h-19 w-30 items-center justify-center overflow-visible"
             : variant === "footer"
               ? "inline-flex items-center"
               : ""

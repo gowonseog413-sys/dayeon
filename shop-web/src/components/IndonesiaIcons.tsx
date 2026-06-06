@@ -1,3 +1,6 @@
+import type { SocialChannels } from "@/lib/social-channels";
+import { SocialLink } from "@/components/SocialLink";
+
 type IconProps = { className?: string };
 
 /** 인도네시아 테마 — 마이정보 */
@@ -67,35 +70,38 @@ export function IconTikTokID({ className = "h-[1.05rem] w-[1.05rem]" }: IconProp
 
 const ID_SOCIAL = [
   {
+    key: "facebook" as const,
     label: "Facebook",
     Icon: IconFacebookID,
     className: "bg-[#1877F2] text-white border-[#1877F2]",
   },
   {
+    key: "instagram" as const,
     label: "Instagram",
     Icon: IconInstagramID,
     className:
       "border-transparent text-white bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]",
   },
   {
+    key: "tiktok" as const,
     label: "TikTok",
     Icon: IconTikTokID,
     className: "bg-[#111111] text-white border-[#111111]",
   },
 ] as const;
 
-export function IndonesiaSocialIcons() {
+export function IndonesiaSocialIcons({ channels }: { channels: SocialChannels }) {
   return (
     <div className="flex items-center gap-2.5">
-      {ID_SOCIAL.map(({ label, Icon, className }) => (
-        <span
-          key={label}
+      {ID_SOCIAL.map(({ key, label, Icon, className }) => (
+        <SocialLink
+          key={key}
+          href={channels[key]}
+          label={label}
           className={`flex h-10 w-10 items-center justify-center rounded-full border shadow-sm ${className}`}
-          title={label}
-          aria-label={label}
         >
           <Icon />
-        </span>
+        </SocialLink>
       ))}
     </div>
   );

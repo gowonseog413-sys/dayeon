@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" role="img" aria-label="äl ¬øÄ LÈ ø¬ô0">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="50%" stop-color="#141414"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9a8450"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#9a8450"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1280" height="36" fill="#0a0a0a"/>
+  <text x="640" y="23" fill="#d4af37" font-family="Georgia, serif" font-size="13" text-anchor="middle" letter-spacing="2">FREE SHIPPING · PREMIUM COLLECTION</text>
+  <rect x="0" y="36" width="1280" height="88" fill="#0d0d0d" stroke="#3a3428"/>
+  <text x="48" y="88" fill="url(#gold)" font-family="Georgia, serif" font-size="28" font-weight="bold" letter-spacing="4">dayeon</text>
+  <text x="48" y="108" fill="#a8a29e" font-family="sans-serif" font-size="9" letter-spacing="3">PREMIUM</text>
+  <rect x="280" y="62" width="520" height="36" rx="18" fill="#1a1a1a" stroke="#3a3428"/>
+  <rect x="860" y="62" width="72" height="36" rx="8" fill="#1a1a1a" stroke="#3a3428"/>
+  <rect x="948" y="62" width="72" height="36" rx="8" fill="#1a1a1a" stroke="#3a3428"/>
+  <rect x="80" y="140" width="1120" height="180" rx="16" fill="#1a1a1a" stroke="#3a3428"/>
+  <text x="640" y="240" fill="#d4af37" font-family="Georgia, serif" font-size="42" text-anchor="middle">Premium Lenses</text>
+  <text x="640" y="280" text-anchor="middle" fill="#a8a29e" font-family="sans-serif" font-size="16">Black &amp; Gold Theme</text>
+  <text x="640" y="360" fill="#f0e6c8" font-family="sans-serif" font-size="22" font-weight="bold" text-anchor="middle">& Bundles &</text>
+  <g transform="translate(120,390)">
+    <rect width="240" height="280" rx="14" fill="#1a1a1a" stroke="#3a3428"/>
+    <rect x="16" y="16" width="208" height="150" rx="8" fill="#262626"/>
+    <rect x="16" y="182" width="80" height="14" rx="4" fill="#d4af37"/>
+    <rect x="16" y="206" width="160" height="12" rx="4" fill="#3a3428"/>
+    <text x="16" y="248" fill="#d4af37" font-family="sans-serif" font-size="16" font-weight="bold">Rp 189.000</text>
+  </g>
+  <g transform="translate(390,390)">
+    <rect width="240" height="280" rx="14" fill="#1a1a1a" stroke="#d4af37"/>
+    <rect x="16" y="16" width="208" height="150" rx="8" fill="#262626"/>
+    <rect x="16" y="182" width="80" height="14" rx="4" fill="#d4af37"/>
+    <rect x="16" y="206" width="160" height="12" rx="4" fill="#3a3428"/>
+    <text x="16" y="248" fill="#d4af37" font-family="sans-serif" font-size="16" font-weight="bold">Rp 249.000</text>
+  </g>
+  <g transform="translate(660,390)">
+    <rect width="240" height="280" rx="14" fill="#1a1a1a" stroke="#3a3428"/>
+    <rect x="16" y="16" width="208" height="150" rx="8" fill="#262626"/>
+    <rect x="16" y="182" width="80" height="14" rx="4" fill="#d4af37"/>
+    <rect x="16" y="206" width="160" height="12" rx="4" fill="#3a3428"/>
+    <text x="16" y="248" fill="#d4af37" font-family="sans-serif" font-size="16" font-weight="bold">Rp 169.000</text>
+  </g>
+  <g transform="translate(930,390)">
+    <rect width="240" height="280" rx="14" fill="#1a1a1a" stroke="#3a3428"/>
+    <rect x="16" y="16" width="208" height="150" rx="8" fill="#262626"/>
+    <rect x="16" y="182" width="80" height="14" rx="4" fill="#d4af37"/>
+    <rect x="16" y="206" width="160" height="12" rx="4" fill="#3a3428"/>
+    <text x="16" y="248" fill="#d4af37" font-family="sans-serif" font-size="16" font-weight="bold">Rp 139.000</text>
+  </g>
+  <rect x="0" y="720" width="1280" height="80" fill="#0d0d0d" stroke="#3a3428"/>
+</svg>

@@ -1,4 +1,5 @@
 import type { AdminMember } from "@/lib/types";
+import { tierLabel } from "@/lib/tier";
 
 function escapeCsv(value: string | number) {
   const text = String(value ?? "");
@@ -30,6 +31,7 @@ export function downloadMembersCsv(users: AdminMember[], filename = "회원목�
     "총구매금액",
     "구매건수",
     "적립금액",
+    "사용금액",
     "장바구니",
     "최근로그인",
     "접속횟수",
@@ -46,10 +48,11 @@ export function downloadMembersCsv(users: AdminMember[], filename = "회원목�
     u.phone || "-",
     u.address || "-",
     u.email,
-    u.tier || "-",
+    tierLabel(u.tier),
     u.totalPurchaseAmount,
     u.purchaseCount,
     u.points,
+    u.pointsUsed || 0,
     u.cartCount > 0 ? u.cartCount : "-",
     formatDateTime(u.lastLoginAt),
     u.loginCount,

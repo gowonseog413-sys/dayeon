@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CatalogUsageModal } from "@/components/erp/CatalogUsageModal";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
+import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { getToken } from "@/lib/auth-store";
 import {
   catalogApi,
@@ -27,7 +28,8 @@ type PendingAction = {
 
 export default function ErpProductCatalogPage() {
   const { catalog, loading, reload } = useProductCatalog();
-  const [msg, setMsg] = useState("");
+  const { showSaveSuccess } = useErpSaveSuccess();
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [selectedMain, setSelectedMain] = useState<string | null>(null);
   const [selectedMid, setSelectedMid] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export default function ErpProductCatalogPage() {
   async function runPending(force = false) {
     if (!pending) return;
     const token = getToken();
-    setMsg("");
+    setErrorMsg("");
     try {
       const { level, action, mainId, midId, subId, body } = pending;
       const q = force ? "?force=1" : "";
@@ -84,7 +86,7 @@ export default function ErpProductCatalogPage() {
         await catalogApi(path, { method: "DELETE", token });
         if (level === "main") setSelectedMain(null);
         if (level === "mid") setSelectedMid(null);
-        setMsg("삭제되었습니다. 상품목록에서 확인해 주세요.");
+        showSaveSuccess({ message: "삭제되었습니다", subMessage: "상품목록에서 확인해 주세요." });
       } else {
         let path = `/api/admin/catalog/tree/main/${mainId}`;
         let payload = { ...body, force };
@@ -97,12 +99,12 @@ export default function ErpProductCatalogPage() {
         setEditMain(null);
         setEditMid(null);
         setEditSub(null);
-        setMsg("수정되었습니다. 상품목록에서 확인해 주세요.");
+        showSaveSuccess({ subMessage: "상품목록에서 확인해 주세요." });
       }
       notifyCatalogUpdated();
       await reload();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "처리 실패");
+      setErrorMsg(err instanceof Error ? err.message : "처리 실패");
     } finally {
       setUsageOpen(false);
       setPending(null);
@@ -126,11 +128,11 @@ export default function ErpProductCatalogPage() {
         body: JSON.stringify({ label: mainForm.label }),
       });
       setMainForm({ label: "" });
-      setMsg("대 카테고리가 추가되었습니다.");
+      showSaveSuccess({ message: "등록되었습니다", subMessage: "대 카테고리가 추가되었습니다." });
       notifyCatalogUpdated();
       await reload();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "추가 실패");
+      setErrorMsg(err instanceof Error ? err.message : "추가 실패");
     }
   }
 
@@ -144,11 +146,11 @@ export default function ErpProductCatalogPage() {
         body: JSON.stringify({ label: midForm.label }),
       });
       setMidForm({ label: "" });
-      setMsg("중 카테고리가 추가되었습니다.");
+      showSaveSuccess({ message: "등록되었습니다", subMessage: "중 카테고리가 추가되었습니다." });
       notifyCatalogUpdated();
       await reload();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "추가 실패");
+      setErrorMsg(err instanceof Error ? err.message : "추가 실패");
     }
   }
 
@@ -162,11 +164,11 @@ export default function ErpProductCatalogPage() {
         body: JSON.stringify({ label: subForm.label }),
       });
       setSubForm({ label: "" });
-      setMsg("소 카테고리가 추가되었습니다.");
+      showSaveSuccess({ message: "등록되었습니다", subMessage: "소 카테고리가 추가되었습니다." });
       notifyCatalogUpdated();
       await reload();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "추가 실패");
+      setErrorMsg(err instanceof Error ? err.message : "추가 실패");
     }
   }
 
@@ -181,9 +183,10 @@ export default function ErpProductCatalogPage() {
       if (selectedMain === item.id && newId !== item.id) setSelectedMain(newId);
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess();
     } catch (err) {
       if (await handleInUse(err, "edit", { level: "main", action: "edit", mainId: item.id, body: { label, newId: newId !== item.id ? newId : undefined } })) return;
-      setMsg(err instanceof Error ? err.message : "수정 실패");
+      setErrorMsg(err instanceof Error ? err.message : "수정 실패");
     }
   }
 
@@ -194,9 +197,10 @@ export default function ErpProductCatalogPage() {
       if (selectedMain === id) { setSelectedMain(null); setSelectedMid(null); }
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess({ message: "삭제되었습니다" });
     } catch (err) {
       if (await handleInUse(err, "delete", { level: "main", action: "delete", mainId: id })) return;
-      setMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
     }
   }
 
@@ -212,9 +216,10 @@ export default function ErpProductCatalogPage() {
       if (selectedMid === item.id && newId !== item.id) setSelectedMid(newId);
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess();
     } catch (err) {
       if (await handleInUse(err, "edit", { level: "mid", action: "edit", mainId: selectedMain, midId: item.id, body: { label, newId: newId !== item.id ? newId : undefined } })) return;
-      setMsg(err instanceof Error ? err.message : "수정 실패");
+      setErrorMsg(err instanceof Error ? err.message : "수정 실패");
     }
   }
 
@@ -225,9 +230,10 @@ export default function ErpProductCatalogPage() {
       if (selectedMid === id) setSelectedMid(null);
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess({ message: "삭제되었습니다" });
     } catch (err) {
       if (await handleInUse(err, "delete", { level: "mid", action: "delete", mainId: selectedMain, midId: id })) return;
-      setMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
     }
   }
 
@@ -242,9 +248,10 @@ export default function ErpProductCatalogPage() {
       setEditSub(null);
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess();
     } catch (err) {
       if (await handleInUse(err, "edit", { level: "sub", action: "edit", mainId: selectedMain, midId: selectedMid, subId: item.id, body: { label, newId: newId !== item.id ? newId : undefined } })) return;
-      setMsg(err instanceof Error ? err.message : "수정 실패");
+      setErrorMsg(err instanceof Error ? err.message : "수정 실패");
     }
   }
 
@@ -254,9 +261,10 @@ export default function ErpProductCatalogPage() {
       await catalogApi(`/api/admin/catalog/tree/main/${selectedMain}/mid/${selectedMid}/sub/${id}`, { method: "DELETE", token: getToken() });
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess({ message: "삭제되었습니다" });
     } catch (err) {
       if (await handleInUse(err, "delete", { level: "sub", action: "delete", mainId: selectedMain, midId: selectedMid, subId: id })) return;
-      setMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
     }
   }
 
@@ -271,8 +279,9 @@ export default function ErpProductCatalogPage() {
       setSecForm({ label: "" });
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess({ message: "등록되었습니다", subMessage: "홈 섹션이 추가되었습니다." });
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "추가 실패");
+      setErrorMsg(err instanceof Error ? err.message : "추가 실패");
     }
   }
 
@@ -286,6 +295,7 @@ export default function ErpProductCatalogPage() {
       setEditSec(null);
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess();
     } catch (err) {
       if (isInUseError(err)) {
         setUsageAction("edit");
@@ -296,7 +306,7 @@ export default function ErpProductCatalogPage() {
         setUsageOpen(true);
         return;
       }
-      setMsg(err instanceof Error ? err.message : "수정 실패");
+      setErrorMsg(err instanceof Error ? err.message : "수정 실패");
     }
   }
 
@@ -306,6 +316,7 @@ export default function ErpProductCatalogPage() {
       await catalogApi(`/api/admin/catalog/sections/${id}`, { method: "DELETE", token: getToken() });
       notifyCatalogUpdated();
       await reload();
+      showSaveSuccess({ message: "삭제되었습니다" });
     } catch (err) {
       if (isInUseError(err)) {
         setUsageAction("delete");
@@ -316,7 +327,7 @@ export default function ErpProductCatalogPage() {
         setUsageOpen(true);
         return;
       }
-      setMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
     }
   }
 
@@ -325,7 +336,7 @@ export default function ErpProductCatalogPage() {
       title="카테고리 속성"
       description="대·중·소 카테고리를 관리합니다. 쇼핑몰 상단 메뉴 구조와 동일하며, 상품 등록에 바로 반영됩니다."
     >
-      {msg && <p className="mb-3 text-sm text-gray-700">{msg}</p>}
+      {errorMsg ? <p className="mb-2 text-sm text-red-600">{errorMsg}</p> : null}
       {loading ? (
         <p className="text-sm text-gray-400">불러오는 중…</p>
       ) : (
@@ -555,7 +566,7 @@ function EditRow({
   return (
     <div className="space-y-1">
       <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} className="w-full rounded border px-2 py-1 text-sm" />
-      <div className="flex gap-2 text-xs">
+      <div className="flex justify-end gap-2 text-xs">
         <button type="button" className="text-[var(--pink-accent)]" onClick={onSave}>저장</button>
         <button type="button" className="text-gray-500" onClick={onCancel}>취소</button>
       </div>

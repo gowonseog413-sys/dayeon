@@ -42,10 +42,18 @@ Hosting 사이트 `dayeon-shop` 은 이미 생성되어 있습니다.
 | 주문 | https://dayeon-shop.web.app/erp/orders |
 | 회원 | https://dayeon-shop.web.app/erp/users |
 | 포인트/적립금 | https://dayeon-shop.web.app/erp/users/points |
+| 내리뷰/포인트 | https://dayeon-shop.web.app/erp/users/reviews |
 | 추천인제도 | https://dayeon-shop.web.app/erp/users/referral |
 | 테마변경 | https://dayeon-shop.web.app/erp/theme |
 
 관리자: `admin@eyesight.local` / `admin1234`
+
+## 2026-06-06 배포 메모
+
+- 마이페이지: 포인트·등급, 장바구니·위시, 프로필 통합 탭
+- ERP: 내리뷰/포인트내역, 주문·테마·이벤트팝업·통계 확장
+- 포인트 원장(`pointTransactions`) — 쇼핑몰·ERP 실시간 동기
+- 상세 작업: [docs/WORKLOG-2026-06-06.md](docs/WORKLOG-2026-06-06.md)
 
 ## 2026-06-05 배포 메모
 

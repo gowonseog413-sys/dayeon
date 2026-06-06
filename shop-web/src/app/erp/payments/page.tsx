@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
+import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { api } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { CHANNEL_TYPE_LABEL, type PaymentChannel } from "@/lib/payment-methods";
 
 export default function ErpPaymentsPage() {
   const [channels, setChannels] = useState<PaymentChannel[]>([]);
-  const [msg, setMsg] = useState("");
+  const { showSaveSuccess } = useErpSaveSuccess();
+  const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -26,17 +29,17 @@ export default function ErpPaymentsPage() {
 
   async function save() {
     setSaving(true);
-    setMsg("");
+    setErrorMsg("");
     try {
       await api("/api/admin/payments/channels", {
         method: "PUT",
         token: getToken(),
         body: JSON.stringify({ channels }),
       });
-      setMsg("Jubelio 연동 채널 설정이 저장되었습니다.");
+      showSaveSuccess({ subMessage: "결제 채널 설정이 반영되었습니다." });
       load();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "저장 실패");
+      setErrorMsg(e instanceof Error ? e.message : "저장 실패");
     } finally {
       setSaving(false);
     }
@@ -57,7 +60,7 @@ export default function ErpPaymentsPage() {
         인도네시아: 신용카드(Midtrans), GoPay(충전식 e-wallet), 가상계좌(BCA/Mandiri/BNI/BRI)를
         Jubelio OMS 결제 채널과 매핑합니다.
       </p>
-      {msg && <p className="mb-3 text-sm text-gray-600">{msg}</p>}
+      {errorMsg ? <p className="mb-2 text-sm text-red-600">{errorMsg}</p> : null}
 
       <div className="space-y-4">
         {channels.map((ch, idx) => (
@@ -128,14 +131,16 @@ export default function ErpPaymentsPage() {
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={save}
-        disabled={saving}
-        className="mt-4 rounded-lg bg-gray-800 px-5 py-2 text-sm text-white hover:bg-gray-900 disabled:opacity-60"
-      >
-        {saving ? "저장 중…" : "채널 설정 저장"}
-      </button>
+      <ErpFormActions className="mt-4">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="rounded-lg bg-gray-800 px-5 py-2 text-sm text-white hover:bg-gray-900 disabled:opacity-60"
+        >
+          {saving ? "저장 중…" : "채널 설정 저장"}
+        </button>
+      </ErpFormActions>
     </ErpPageShell>
   );
 }

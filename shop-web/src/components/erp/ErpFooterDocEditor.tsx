@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BlogHtmlEditor } from "@/components/erp/BlogHtmlEditor";
+import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
+import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { useI18n } from "@/components/I18nProvider";
 import type { LegalSection } from "@/i18n/legal/types";
 import { LEGAL_PAGE_LABELS, PAGE_LABELS, type FooterDocTabKey } from "@/lib/erp-catalog";
@@ -60,7 +62,8 @@ export function ErpFooterDocEditor({ tab }: Props) {
   const [title, setTitle] = useState("");
   const [html, setHtml] = useState("<p></p>");
   const [email, setEmail] = useState("");
-  const [msg, setMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const { showSaveSuccess } = useErpSaveSuccess();
 
   const tabLabel = PAGE_LABELS[tab];
   const showTitle = !isLegalKey(tab);
@@ -113,7 +116,7 @@ export function ErpFooterDocEditor({ tab }: Props) {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setMsg("");
+    setErrorMsg("");
     try {
       if (isLegalKey(tab)) {
         await api(`/api/admin/content/legal/${tab}/${legalLocale}`, {
@@ -138,9 +141,9 @@ export function ErpFooterDocEditor({ tab }: Props) {
           body: JSON.stringify({ title, html }),
         });
       }
-      setMsg("저장되었습니다. 쇼핑몰에 바로 반영됩니다.");
+      showSaveSuccess({ subMessage: "쇼핑몰에 바로 반영됩니다." });
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
     }
   }
 
@@ -169,7 +172,7 @@ export function ErpFooterDocEditor({ tab }: Props) {
       )}
 
       <form onSubmit={save} className="space-y-3">
-        {msg && <p className="text-sm text-green-600">{msg}</p>}
+        {errorMsg ? <p className="text-sm text-red-600">{errorMsg}</p> : null}
 
         {showTitle && (
           <input
@@ -192,13 +195,7 @@ export function ErpFooterDocEditor({ tab }: Props) {
 
         <BlogHtmlEditor value={html} onChange={setHtml} placeholder={`${tabLabel} 본문을 작성하세요…`} />
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="submit"
-            className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white"
-          >
-            저장
-          </button>
+        <ErpFormActions className="gap-3">
           <Link
             href={PREVIEW_PATH[tab]}
             target="_blank"
@@ -206,7 +203,13 @@ export function ErpFooterDocEditor({ tab }: Props) {
           >
             미리보기 ↗
           </Link>
-        </div>
+          <button
+            type="submit"
+            className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white"
+          >
+            저장
+          </button>
+        </ErpFormActions>
       </form>
     </ErpPageShell>
   );

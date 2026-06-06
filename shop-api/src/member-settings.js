@@ -1,10 +1,29 @@
-import { computeUserTier } from "./user-tier.js";
+import { getUserTotalPurchase, syncUserTier } from "./user-tier.js";
 
 export const DEFAULT_POINTS_SETTINGS = {
-  earnRatePercent: 1,
-  tierSilver: 1000,
-  tierGold: 5000,
-  tierVip: 10000,
+  tierSilver: 1000000,
+  tierGold: 5000000,
+  tierDiamond: 10000000,
+  earnRateBronze: 0.5,
+  earnRateSilver: 1,
+  earnRateGold: 1.5,
+  earnRateDiamond: 2,
+};
+
+export const DEFAULT_WELCOME_MESSAGE = `가입해 주셔서 감사합니다.
+감사의 마음으로 {points}포인트를 적립해 드렸습니다.
+언제든지 현금처럼 사용 가능합니다.`;
+
+export const DEFAULT_SIGNUP_BONUS = {
+  enabled: true,
+  points: 100,
+  welcomeMessageEnabled: true,
+  welcomeMessage: DEFAULT_WELCOME_MESSAGE,
+};
+
+export const DEFAULT_REVIEW_REWARD = {
+  enabled: true,
+  points: 1000,
 };
 
 export const DEFAULT_REFERRAL_SETTINGS = {
@@ -23,23 +42,100 @@ export function ensureMemberSettings(db) {
   if (!db.settings.points) {
     db.settings.points = { ...DEFAULT_POINTS_SETTINGS };
   } else {
-    db.settings.points = { ...DEFAULT_POINTS_SETTINGS, ...db.settings.points };
+    const legacy = db.settings.points;
+    db.settings.points = {
+      ...DEFAULT_POINTS_SETTINGS,
+      ...legacy,
+      tierDiamond:
+        legacy.tierDiamond ?? legacy.tierVip ?? DEFAULT_POINTS_SETTINGS.tierDiamond,
+    };
+    delete db.settings.points.tierVip;
+    delete db.settings.points.earnRatePercent;
+  }
+  if (!db.settings.signupBonus) {
+    db.settings.signupBonus = { ...DEFAULT_SIGNUP_BONUS };
+  } else {
+    db.settings.signupBonus = {
+      ...DEFAULT_SIGNUP_BONUS,
+      ...db.settings.signupBonus,
+    };
   }
   if (!db.settings.referral) {
     db.settings.referral = { ...DEFAULT_REFERRAL_SETTINGS };
   } else {
     db.settings.referral = { ...DEFAULT_REFERRAL_SETTINGS, ...db.settings.referral };
   }
+  if (!db.settings.reviewReward) {
+    db.settings.reviewReward = { ...DEFAULT_REVIEW_REWARD };
+  } else {
+    db.settings.reviewReward = {
+      ...DEFAULT_REVIEW_REWARD,
+      ...db.settings.reviewReward,
+    };
+  }
   return db.settings;
 }
 
 export function normalizePointsSettings(raw) {
   return {
-    earnRatePercent: Math.max(0, Math.min(100, Number(raw?.earnRatePercent) || 0)),
-    tierSilver: Math.max(0, Math.floor(Number(raw?.tierSilver) || DEFAULT_POINTS_SETTINGS.tierSilver)),
-    tierGold: Math.max(0, Math.floor(Number(raw?.tierGold) || DEFAULT_POINTS_SETTINGS.tierGold)),
-    tierVip: Math.max(0, Math.floor(Number(raw?.tierVip) || DEFAULT_POINTS_SETTINGS.tierVip)),
+    tierSilver: Math.max(
+      0,
+      Math.floor(Number(raw?.tierSilver) || DEFAULT_POINTS_SETTINGS.tierSilver),
+    ),
+    tierGold: Math.max(
+      0,
+      Math.floor(Number(raw?.tierGold) || DEFAULT_POINTS_SETTINGS.tierGold),
+    ),
+    tierDiamond: Math.max(
+      0,
+      Math.floor(
+        Number(raw?.tierDiamond ?? raw?.tierVip) || DEFAULT_POINTS_SETTINGS.tierDiamond,
+      ),
+    ),
+    earnRateBronze: Math.max(
+      0,
+      Math.min(100, Number(raw?.earnRateBronze) ?? DEFAULT_POINTS_SETTINGS.earnRateBronze),
+    ),
+    earnRateSilver: Math.max(
+      0,
+      Math.min(100, Number(raw?.earnRateSilver) ?? DEFAULT_POINTS_SETTINGS.earnRateSilver),
+    ),
+    earnRateGold: Math.max(
+      0,
+      Math.min(100, Number(raw?.earnRateGold) ?? DEFAULT_POINTS_SETTINGS.earnRateGold),
+    ),
+    earnRateDiamond: Math.max(
+      0,
+      Math.min(100, Number(raw?.earnRateDiamond) ?? DEFAULT_POINTS_SETTINGS.earnRateDiamond),
+    ),
   };
+}
+
+export function normalizeReviewReward(raw) {
+  return {
+    enabled: raw?.enabled !== false,
+    points: Math.max(0, Math.floor(Number(raw?.points) || 0)),
+  };
+}
+
+export function normalizeSignupBonus(raw) {
+  const welcomeMessage =
+    typeof raw?.welcomeMessage === "string" && raw.welcomeMessage.trim()
+      ? raw.welcomeMessage.trim().slice(0, 2000)
+      : DEFAULT_WELCOME_MESSAGE;
+  return {
+    enabled: raw?.enabled !== false,
+    points: Math.max(0, Math.floor(Number(raw?.points) || 0)),
+    welcomeMessageEnabled: raw?.welcomeMessageEnabled !== false,
+    welcomeMessage,
+  };
+}
+
+export function syncAllUserTiers(db) {
+  for (const user of db.users) {
+    if (user.role === "admin") continue;
+    syncUserTier(db, user.id);
+  }
 }
 
 export function normalizeReferralSettings(raw) {
@@ -74,7 +170,7 @@ export function ensureUserReferralCodes(db) {
 
 export function buildPointsMemberRows(db) {
   ensureMemberSettings(db);
-  const tiers = db.settings.points;
+  syncAllUserTiers(db);
   return [...db.users]
     .map((u) => ({
       id: u.id,
@@ -82,7 +178,9 @@ export function buildPointsMemberRows(db) {
       email: u.email,
       role: u.role,
       points: Number(u.points) || 0,
-      tier: u.tier || computeUserTier(u.points, tiers),
+      pointsUsed: Number(u.pointsUsed) || 0,
+      tier: u.tier || "bronze",
+      totalPurchaseAmount: getUserTotalPurchase(db, u.id),
       createdAt: u.createdAt || null,
     }))
     .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));

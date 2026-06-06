@@ -11,8 +11,15 @@ import {
   productsUsingCatalog,
   productsUsingSection,
   productsUsingFilterCategory,
+  productsUsingFilterOption,
+  productsUsingFilterField,
+  countFilterFieldOptions,
+  deleteFilterFieldCascade,
+  migrateFilterOptionId,
   getFilterCategories,
   getFilterFields,
+  getFilterFieldOptions,
+  FILTER_OPTION_FIELD_IDS,
   slugFromLabel,
 } from "../product-catalog.js";
 
@@ -550,6 +557,179 @@ router.delete("/filter-categories/:id", (req, res) => {
   });
 
   if (result?.error === "NOT_FOUND") return res.status(404).json({ error: "필터 카테고리를 찾을 수 없습니다." });
+  res.json({ ok: true, ...result, ...listCatalog(readDb()) });
+});
+
+/* 필터 항목별 드롭다운 옵션 (브랜드·색상 등) */
+router.post("/filter-options/:fieldId", (req, res) => {
+  const fieldId = String(req.params.fieldId || "").trim();
+  if (!FILTER_OPTION_FIELD_IDS.includes(fieldId)) {
+    return res.status(400).json({ error: "옵션을 관리할 수 없는 필터 항목입니다." });
+  }
+
+  const label = String(req.body?.label || "").trim();
+  if (!label) return res.status(400).json({ error: "표시 이름을 입력해 주세요." });
+  let id =
+    fieldId === "brand"
+      ? String(req.body?.id || "").trim() || label
+      : String(req.body?.id || "").trim() || slugFromLabel(label);
+  if (fieldId !== "brand") id = id.replace(/\s+/g, "-").toLowerCase();
+
+  let created = null;
+  try {
+    updateDb((d) => {
+      ensureProductCatalog(d);
+      const list = getFilterFieldOptions(d, fieldId);
+      if (!list) throw Object.assign(new Error("INVALID_FIELD"), { code: "INVALID_FIELD" });
+      if (list.some((s) => s.id === id)) throw Object.assign(new Error("DUPLICATE"), { code: "DUPLICATE" });
+      created = { id, label, sortOrder: Number(req.body?.sortOrder) || list.length + 1 };
+      list.push(created);
+    });
+  } catch (e) {
+    if (e.code === "DUPLICATE") return res.status(400).json({ error: "이미 사용 중인 코드입니다." });
+    if (e.code === "INVALID_FIELD") return res.status(400).json({ error: "옵션을 관리할 수 없는 필터 항목입니다." });
+    throw e;
+  }
+  res.status(201).json({ item: created, ...listCatalog(readDb()) });
+});
+
+router.put("/filter-options/:fieldId/:optionId", (req, res) => {
+  const fieldId = String(req.params.fieldId || "").trim();
+  if (!FILTER_OPTION_FIELD_IDS.includes(fieldId)) {
+    return res.status(400).json({ error: "옵션을 관리할 수 없는 필터 항목입니다." });
+  }
+
+  const force = Boolean(req.body?.force);
+  const db = readDb();
+  const used = productsUsingFilterOption(db, fieldId, req.params.optionId);
+  if (used.length > 0 && !force) {
+    return res.status(409).json({
+      error: "IN_USE",
+      count: used.length,
+      products: used.map((p) => ({ id: p.id, brand: p.brand, name: p.name })),
+      message: `현재 ${used.length}개 상품이 이 옵션을 사용 중입니다. 수정 후 상품목록에서 확인해 주세요.`,
+    });
+  }
+
+  let result = null;
+  updateDb((d) => {
+    ensureProductCatalog(d);
+    const list = getFilterFieldOptions(d, fieldId);
+    if (!list) {
+      result = { error: "INVALID_FIELD" };
+      return;
+    }
+    const r = updateNode(list, req.params.optionId, req.body, force, "option", {});
+    if (r.error) {
+      result = r;
+      return;
+    }
+    const newId = fieldId === "brand" ? String(req.body?.newId || req.body?.id || r.newId).trim() || r.label : r.newId;
+    if (newId !== req.params.optionId) {
+      migrateFilterOptionId(d, fieldId, req.params.optionId, newId, r.label);
+    } else if (fieldId === "brand" && r.label !== list[r.idx].label) {
+      migrateFilterOptionId(d, fieldId, req.params.optionId, newId, r.label);
+    }
+    list[r.idx] = { ...r.node, id: newId, label: r.label };
+    result = { item: list[r.idx] };
+  });
+
+  if (result?.error === "INVALID_FIELD") return res.status(400).json({ error: "옵션을 관리할 수 없는 필터 항목입니다." });
+  if (result?.error === "NOT_FOUND") return res.status(404).json({ error: "옵션을 찾을 수 없습니다." });
+  if (result?.error === "LABEL_REQUIRED") return res.status(400).json({ error: "표시 이름을 입력해 주세요." });
+  if (result?.error === "DUPLICATE") return res.status(400).json({ error: "이미 사용 중인 코드입니다." });
+
+  res.json({ ...result, ...listCatalog(readDb()) });
+});
+
+router.delete("/filter-options/:fieldId/:optionId", (req, res) => {
+  const fieldId = String(req.params.fieldId || "").trim();
+  if (!FILTER_OPTION_FIELD_IDS.includes(fieldId)) {
+    return res.status(400).json({ error: "옵션을 관리할 수 없는 필터 항목입니다." });
+  }
+
+  const force = req.query.force === "1" || req.query.force === "true";
+  const db = readDb();
+  const used = productsUsingFilterOption(db, fieldId, req.params.optionId);
+  if (used.length > 0 && !force) {
+    return res.status(409).json({
+      error: "IN_USE",
+      count: used.length,
+      products: used.map((p) => ({ id: p.id, brand: p.brand, name: p.name })),
+      message: `현재 ${used.length}개 상품이 이 옵션을 사용 중입니다. 삭제 후 상품목록에서 확인해 주세요.`,
+    });
+  }
+
+  let result = null;
+  updateDb((d) => {
+    ensureProductCatalog(d);
+    const list = getFilterFieldOptions(d, fieldId);
+    if (!list) {
+      result = { error: "INVALID_FIELD" };
+      return;
+    }
+    result = deleteFromList(list, req.params.optionId);
+  });
+
+  if (result?.error === "INVALID_FIELD") return res.status(400).json({ error: "옵션을 관리할 수 없는 필터 항목입니다." });
+  if (result?.error === "NOT_FOUND") return res.status(404).json({ error: "옵션을 찾을 수 없습니다." });
+  res.json({ ok: true, ...result, ...listCatalog(readDb()) });
+});
+
+/* 필터 항목 삭제 · 사용 현황 */
+router.get("/filter-fields/:id/usage", (req, res) => {
+  const fieldId = String(req.params.id || "").trim();
+  const db = readDb();
+  ensureProductCatalog(db);
+  const field = getFilterFields(db).find((f) => f.id === fieldId);
+  if (!field) return res.status(404).json({ error: "필터 항목을 찾을 수 없습니다." });
+
+  const products = productsUsingFilterField(db, fieldId);
+  const optionCount = countFilterFieldOptions(db, fieldId);
+  res.json({
+    fieldId,
+    fieldLabel: field.label,
+    productCount: products.length,
+    optionCount,
+    hasDependencies: products.length > 0 || optionCount > 0,
+    products: products.map((p) => ({ id: p.id, brand: p.brand, name: p.name })),
+  });
+});
+
+router.delete("/filter-fields/:id", (req, res) => {
+  const fieldId = String(req.params.id || "").trim();
+  const force = req.query.force === "1" || req.query.force === "true";
+  const db = readDb();
+  ensureProductCatalog(db);
+
+  const field = getFilterFields(db).find((f) => f.id === fieldId);
+  if (!field) return res.status(404).json({ error: "필터 항목을 찾을 수 없습니다." });
+
+  const products = productsUsingFilterField(db, fieldId);
+  const optionCount = countFilterFieldOptions(db, fieldId);
+  const hasDependencies = products.length > 0 || optionCount > 0;
+
+  if (hasDependencies && !force) {
+    return res.status(409).json({
+      error: "IN_USE",
+      productCount: products.length,
+      optionCount,
+      hasDependencies: true,
+      products: products.map((p) => ({ id: p.id, brand: p.brand, name: p.name })),
+      message:
+        "등록된 상품 또는 필터 옵션이 있습니다. 삭제 시 연결된 상품과 필터 옵션이 모두 삭제됩니다.",
+    });
+  }
+
+  let result = null;
+  updateDb((d) => {
+    result = deleteFilterFieldCascade(d, fieldId);
+  });
+
+  if (result?.error === "NOT_FOUND") {
+    return res.status(404).json({ error: "필터 항목을 찾을 수 없습니다." });
+  }
+
   res.json({ ok: true, ...result, ...listCatalog(readDb()) });
 });
 

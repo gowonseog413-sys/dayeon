@@ -18,6 +18,59 @@ export function formatProductDate(iso?: string | null) {
   return `${y}.${m}.${day}`;
 }
 
+/** 할인 % 기준 역산: 판매가 = 원가 × (1 − 할인%) → 원가 = 판매가 ÷ (1 − 할인%) */
+export function calcOriginalFromSale(salePrice: number, discountPercent: number) {
+  const sale = Math.max(0, Math.floor(salePrice) || 0);
+  const pct = Math.min(99, Math.max(0, Math.floor(discountPercent) || 0));
+  if (pct <= 0) return sale;
+  return Math.round(sale / (1 - pct / 100));
+}
+
+export function discountPercentFromPrices(original: number, sale: number) {
+  const o = Math.max(0, Math.floor(original) || 0);
+  const s = Math.max(0, Math.floor(sale) || 0);
+  if (o <= 0 || s >= o) return 0;
+  return Math.round((1 - s / o) * 100);
+}
+
+export function parseDiscountFromBadge(badge: string | null | undefined) {
+  const m = badge?.trim().match(/^SALE\s+(\d+)\s*%?$/i);
+  return m ? Number(m[1]) : null;
+}
+
+export function saleBadgeFromDiscount(discountPercent: number) {
+  const pct = Math.min(99, Math.max(0, Math.floor(discountPercent) || 0));
+  return pct > 0 ? `SALE ${pct}%` : "";
+}
+
+export function getProductDisplayBadge(p: {
+  badge: string | null;
+  priceOriginal: number;
+  priceSale: number;
+  discountPercent?: number;
+}) {
+  const pct =
+    p.discountPercent ??
+    parseDiscountFromBadge(p.badge) ??
+    discountPercentFromPrices(p.priceOriginal, p.priceSale);
+  const auto = saleBadgeFromDiscount(pct);
+  if (auto) return auto;
+  return p.badge;
+}
+
+export function buildProductPricing(form: {
+  priceSale: number;
+  discountPercent: number;
+  badge: string;
+}) {
+  const priceSale = Math.max(0, Math.floor(form.priceSale) || 0);
+  const discountPercent = Math.min(99, Math.max(0, Math.floor(form.discountPercent) || 0));
+  const priceOriginal = calcOriginalFromSale(priceSale, discountPercent);
+  const autoBadge = saleBadgeFromDiscount(discountPercent);
+  const badge = autoBadge || form.badge.trim() || null;
+  return { priceSale, priceOriginal, discountPercent, badge };
+}
+
 export const emptyProductForm = {
   brand: "Bloominc",
   name: "",
@@ -25,9 +78,12 @@ export const emptyProductForm = {
   categoryMid: "",
   categorySub: "",
   section: "bloominc",
-  priceOriginal: 169000,
-  priceSale: 169000,
+  priceSale: 129000,
+  discountPercent: 0,
   stock: 0,
+  pointsEnabled: true,
+  shippingFeeCharged: false,
+  shippingFeeAmount: 10000,
   badge: "",
   image: "/placeholders/lens-gray.svg",
   thumbImages: emptyThumbImages(),
@@ -51,6 +107,11 @@ export function thumbsFromProduct(p: Product): string[] {
 }
 
 export function productToForm(p: Product): ProductFormState {
+  const discountPercent =
+    p.discountPercent ??
+    parseDiscountFromBadge(p.badge) ??
+    discountPercentFromPrices(p.priceOriginal, p.priceSale);
+  const hasAutoSale = discountPercent > 0;
   return {
     brand: p.brand,
     name: p.name,
@@ -58,10 +119,13 @@ export function productToForm(p: Product): ProductFormState {
     categoryMid: p.categoryMid || "",
     categorySub: p.categorySub || "",
     section: p.section,
-    priceOriginal: p.priceSale,
     priceSale: p.priceSale,
+    discountPercent,
     stock: p.stock ?? 0,
-    badge: p.badge || "",
+    pointsEnabled: p.pointsEnabled !== false,
+    shippingFeeCharged: Boolean(p.shippingFeeCharged),
+    shippingFeeAmount: p.shippingFeeCharged ? (p.shippingFeeAmount ?? 10000) : 0,
+    badge: hasAutoSale ? "" : p.badge || "",
     image: p.image,
     thumbImages: thumbsFromProduct(p),
     colorSwatch: p.colorSwatch,

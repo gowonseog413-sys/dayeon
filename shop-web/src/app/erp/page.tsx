@@ -14,27 +14,50 @@ type Stats = {
   pendingOrders: number;
 };
 
-const ERP_URL = "http://localhost:3010/erp";
-const SHOP_URL = "http://localhost:3010";
+const ERP_URL = "http://localhost:3600/erp";
+const SHOP_URL = "http://localhost:3600";
 
 export default function ErpDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
 
+  const [error, setError] = useState("");
+
   useEffect(() => {
-    api<Stats>("/api/admin/stats", { token: getToken() })
+    const token = getToken();
+    if (!token) {
+      setError("관리자 로그인이 필요합니다. /login 에서 admin@eyesight.local 로 로그인하세요.");
+      return;
+    }
+    api<Stats>("/api/admin/stats", { token })
       .then(setStats)
-      .catch(() => {});
+      .catch((err) => {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "API(3601)에 연결할 수 없습니다. shop-api 서버를 실행해 주세요.",
+        );
+      });
   }, []);
 
   if (!stats) {
     return (
       <ErpPageShell title="대시보드">
-        <p className="text-sm text-gray-500">통계 불러오는 중... (API 실행 + 관리자 로그인 필요)</p>
-        <p className="mt-4 text-sm">
-          ERP 주소:{" "}
-          <a href={ERP_URL} className="font-medium text-[var(--pink-accent)]">
-            {ERP_URL}
-          </a>
+        {error ? (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">
+            {error}
+          </p>
+        ) : (
+          <p className="text-sm text-gray-500">통계 불러오는 중…</p>
+        )}
+        <p className="mt-4 text-sm text-gray-500">
+          쇼핑몰 <a href={SHOP_URL} className="text-[var(--pink-accent)]">{SHOP_URL}</a>
+          {" · "}
+          ERP <a href={ERP_URL} className="text-[var(--pink-accent)]">{ERP_URL}</a>
+          {" · "}
+          API <span className="font-mono text-xs">http://localhost:3601</span>
+        </p>
+        <p className="mt-2 text-xs text-gray-400">
+          터미널: <code className="rounded bg-gray-100 px-1">cd shop-api; npm run dev</code>
         </p>
       </ErpPageShell>
     );
@@ -49,6 +72,8 @@ export default function ErpDashboardPage() {
   ];
 
   const quick = [
+    { href: "/erp/stats", label: "통계보드 보기" },
+    { href: "/erp/counter", label: "카운터조회" },
     { href: "/erp/products", label: "상품 등록·수정" },
     { href: "/erp/articles", label: "언론 보도 올리기" },
     { href: "/erp/pages/about", label: "하단문서 수정" },

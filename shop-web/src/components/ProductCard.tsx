@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { formatRp } from "@/lib/api";
+import { getProductDisplayBadge } from "@/lib/erp-products";
 import { productImageFallback } from "@/lib/product-image-fallback";
 import type { Product } from "@/lib/types";
 
@@ -16,12 +17,13 @@ export function ProductCard({ product, variant = "compact" }: Props) {
   const tall = variant === "tall";
   const fallback = productImageFallback(product);
   const [imgSrc, setImgSrc] = useState(product.image);
+  const badge = getProductDisplayBadge(product);
 
   return (
     <article className="product-card-cute group relative flex h-full flex-col">
-      {product.badge && (
+      {badge && (
         <span className="absolute left-4 top-4 z-10 rounded-full bg-[var(--pink-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-          {product.badge}
+          {badge}
         </span>
       )}
       <Link
@@ -44,15 +46,21 @@ export function ProductCard({ product, variant = "compact" }: Props) {
         )}
       </Link>
       <div className="mt-3 flex flex-1 flex-col items-center space-y-0.5 px-1 pb-1 text-center text-sm">
-        <p className="text-xs font-medium text-[var(--pink-deep)]/70">{product.brand}</p>
+        <p className="product-card-brand text-xs font-medium text-[var(--pink-deep)]/70">{product.brand}</p>
         <Link
           href={`/product/${product.id}`}
-          className="font-semibold text-gray-800 transition hover:text-[var(--pink-accent)]"
+          className="product-card-name font-semibold text-gray-800 transition hover:text-[var(--pink-accent)]"
         >
           {product.name}
         </Link>
-        <p className="text-xs text-gray-400 line-through">{formatRp(product.priceOriginal)}</p>
-        <p className="text-base font-bold text-[var(--pink-accent)]">{formatRp(product.priceSale)}</p>
+        {product.priceOriginal > product.priceSale ? (
+          <p className="product-card-price-original text-xs text-gray-400 line-through">
+            {formatRp(product.priceOriginal)}
+          </p>
+        ) : null}
+        <p className="product-card-price-sale text-base font-bold text-[var(--pink-accent)]">
+          {formatRp(product.priceSale)}
+        </p>
         {!tall && (
           <span
             className="mx-auto mt-1.5 inline-block h-5 w-5 rounded-full border-2 border-white shadow ring-1 ring-[var(--pink-border)]"

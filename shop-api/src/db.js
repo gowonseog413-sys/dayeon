@@ -11,11 +11,16 @@ const emptyDb = () => ({
   products: [],
   orders: [],
   carts: [],
+  wishlists: [],
   articles: [],
   reviews: [],
   paymentChannels: [],
   paymentProfiles: [],
   siteContent: null,
+  eventPopups: [],
+  inquiries: [],
+  userMessages: [],
+  pointTransactions: [],
 });
 
 export function readDb() {

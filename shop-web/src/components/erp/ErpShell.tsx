@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { ErpNavLink } from "@/components/erp/ErpNavLink";
+import { ErpNavigationProvider } from "@/components/erp/ErpNavigationProvider";
+import { ErpSaveSuccessProvider } from "@/components/erp/ErpSaveSuccessProvider";
 import {
   ERP_MODULES,
+  allErpHrefs,
   getActiveErpModule,
   isErpModuleActive,
   isErpSubActive,
@@ -17,10 +20,19 @@ type Props = {
 
 export function ErpShell({ children }: Props) {
   const path = usePathname();
+  const router = useRouter();
   const module = getActiveErpModule(path);
   const showSubNav = module.subs.length > 0;
 
+  useEffect(() => {
+    for (const href of allErpHrefs()) {
+      router.prefetch(href);
+    }
+  }, [router]);
+
   return (
+    <ErpNavigationProvider>
+    <ErpSaveSuccessProvider>
     <div className="erp-shell flex min-h-screen flex-col bg-[#ece8e3]">
       {/* 상단 헤더 — 전체 너비 */}
       <header className="erp-top-frame shrink-0 border-b border-[#3d5553] bg-[#4a6b68] px-4 py-2 text-white shadow-sm">
@@ -102,5 +114,7 @@ export function ErpShell({ children }: Props) {
         </div>
       </div>
     </div>
+    </ErpSaveSuccessProvider>
+    </ErpNavigationProvider>
   );
 }

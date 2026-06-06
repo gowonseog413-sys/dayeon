@@ -23,7 +23,14 @@ export type Product = {
   section: string;
   priceOriginal: number;
   priceSale: number;
+  /** ERP 할인혜택 % — 판매가는 할인 적용 후 금액(청구서) */
+  discountPercent?: number;
   stock?: number;
+  /** false = 구매 시 포인트 미적립 (기본 true) */
+  pointsEnabled?: boolean;
+  /** true = 배송비 부과, false = 무료배송 */
+  shippingFeeCharged?: boolean;
+  shippingFeeAmount?: number;
   badge: string | null;
   image: string;
   colorSwatch: string;
@@ -42,13 +49,38 @@ export type ProductReview = {
   id: string;
   productId: string;
   userId: string;
+  orderId?: string;
   userName: string;
   rating: number;
   content: string;
   createdAt: string;
+  productName?: string;
+  productBrand?: string;
+  productImage?: string | null;
+  pointsAwarded?: number;
+  pointsAwardedAt?: string;
+  userEmail?: string;
+};
+
+export type ReviewableItem = {
+  productId: string;
+  name: string;
+  brand: string;
+  image?: string | null;
+  orderId: string;
+  orderNumber?: string;
+  deliveredAt: string;
 };
 
 export type ReviewSummary = { average: number; count: number };
+
+export type ShippingAddress = {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode: string;
+};
 
 export type User = {
   id: string;
@@ -61,8 +93,10 @@ export type User = {
   birthDate?: string | null;
   phone?: string | null;
   address?: string | null;
+  shippingAddress?: ShippingAddress | null;
+  addressSameAsShipping?: boolean;
   points?: number;
-  tier?: string;
+  tier?: "bronze" | "silver" | "gold" | "diamond" | string;
 };
 
 export type AdminMember = {
@@ -79,6 +113,7 @@ export type AdminMember = {
   tier?: string;
   createdAt: string | null;
   points: number;
+  pointsUsed: number;
   lastLoginAt: string | null;
   loginCount: number;
   totalPurchaseAmount: number;
@@ -93,6 +128,8 @@ export type AdminUsersPage = {
   pageSize: number;
   total: number;
   totalPages: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
 };
 
 export type AdminCartProduct = Pick<
@@ -136,6 +173,13 @@ export type CartItem = {
   product?: Product;
 };
 
+export type WishlistItem = {
+  id: string;
+  productId: string;
+  savedAt: string;
+  product?: Product;
+};
+
 export type Order = {
   id: string;
   orderNumber?: string;
@@ -144,6 +188,7 @@ export type Order = {
     productId: string;
     name: string;
     brand: string;
+    image?: string | null;
     priceSale: number;
     quantity: number;
     lineTotal: number;
@@ -164,6 +209,60 @@ export type Order = {
   jubelioCode?: string;
   paymentStatus?: string;
   status: string;
+  shippedAt?: string | null;
+  completedAt?: string | null;
+  autoCompleted?: boolean;
+  trackingCarrier?: string | null;
+  trackingNumber?: string | null;
+  returnStatus?: "requested" | "approved" | "completed" | "rejected" | null;
+  returnReason?: string | null;
+  returnRequestedAt?: string | null;
+  returnApprovedAt?: string | null;
+  returnCompletedAt?: string | null;
+  returnRejectedAt?: string | null;
+  cancelledAt?: string | null;
+  cancelledBy?: "user" | "admin" | null;
   createdAt: string;
   user?: User;
+};
+
+export type EventPopup = {
+  id: string;
+  title: string;
+  content: string;
+  startDate: string;
+  startTime?: string;
+  endDate: string;
+  endTime?: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InquiryCategory = "order" | "delivery" | "return" | "product" | "other";
+
+export type InquiryStatus = "pending" | "answered";
+
+export type InquiryReply = {
+  id: string;
+  authorRole: "customer" | "admin";
+  body: string;
+  createdAt: string;
+};
+
+export type Inquiry = {
+  id: string;
+  userId: string;
+  category: InquiryCategory;
+  subject: string;
+  body: string;
+  status: InquiryStatus;
+  orderId?: string | null;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  createdAt: string;
+  updatedAt: string;
+  userReadAt?: string | null;
+  replies: InquiryReply[];
 };

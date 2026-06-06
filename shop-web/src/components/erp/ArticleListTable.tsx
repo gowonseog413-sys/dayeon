@@ -34,19 +34,19 @@ export function ArticleListTable({
       <table className="w-full table-fixed text-left text-sm">
         <colgroup>
           <col className="w-[5%]" />
-          <col className="w-[36%]" />
           <col className="w-[11%]" />
           <col className="w-[8%]" />
           <col className="w-[18%]" />
+          <col className="w-[36%]" />
           <col className="w-[22%]" />
         </colgroup>
         <thead className="border-b bg-gray-50 text-gray-500">
           <tr>
             <th className="px-2 py-1.5 text-center">No</th>
-            <th className="px-2 py-1.5">제목</th>
             <th className="px-2 py-1.5">등록일</th>
             <th className="px-2 py-1.5">상태</th>
             <th className="px-2 py-1.5">카테고리</th>
+            <th className="px-2 py-1.5">제목</th>
             <th className="px-2 py-1.5" />
           </tr>
         </thead>
@@ -68,6 +68,13 @@ export function ArticleListTable({
                   }`}
                 >
                   <td className="px-2 py-1.5 text-center text-gray-500">{no}</td>
+                  <td className="truncate px-2 py-1.5 text-gray-500">
+                    {formatArticleDate(a.createdAt)}
+                  </td>
+                  <td className="truncate px-2 py-1.5">{a.published ? "게시" : "임시"}</td>
+                  <td className="truncate px-2 py-1.5 text-gray-600" title={a.category}>
+                    {getArticleCategoryLabel(a.category)}
+                  </td>
                   <td className="truncate px-2 py-1.5" title={a.title}>
                     <a
                       href={`/articles/${a.slug}`}
@@ -77,13 +84,6 @@ export function ArticleListTable({
                     >
                       {a.title}
                     </a>
-                  </td>
-                  <td className="truncate px-2 py-1.5 text-gray-500">
-                    {formatArticleDate(a.createdAt)}
-                  </td>
-                  <td className="truncate px-2 py-1.5">{a.published ? "게시" : "임시"}</td>
-                  <td className="truncate px-2 py-1.5 text-gray-600" title={a.category}>
-                    {getArticleCategoryLabel(a.category)}
                   </td>
                   <td className="px-2 py-1.5 text-right whitespace-nowrap">
                     <button

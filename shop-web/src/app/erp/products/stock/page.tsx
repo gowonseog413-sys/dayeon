@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
+import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
@@ -14,7 +15,7 @@ import {
 } from "@/lib/erp-products";
 import type { Product } from "@/lib/types";
 
-export default function ErpProductStockPage() {
+function ErpProductStockContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -24,6 +25,8 @@ export default function ErpProductStockPage() {
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
   const [stockSaving, setStockSaving] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+  const { showSaveSuccess } = useErpSaveSuccess();
 
   function load() {
     setLoading(true);
@@ -73,6 +76,7 @@ export default function ErpProductStockPage() {
     const raw = stockDrafts[id] ?? "0";
     const stock = Math.max(0, Math.floor(Number(raw) || 0));
     setStockSaving(id);
+    setErrorMsg("");
     try {
       await api(`/api/admin/products/${id}/stock`, {
         method: "PATCH",
@@ -81,8 +85,9 @@ export default function ErpProductStockPage() {
       });
       setStockDrafts((prev) => ({ ...prev, [id]: String(stock) }));
       load();
+      showSaveSuccess({ subMessage: `재고 ${stock.toLocaleString("ko-KR")}개로 반영되었습니다.` });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "재고 저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : "재고 저장 실패");
     } finally {
       setStockSaving(null);
     }
@@ -93,6 +98,8 @@ export default function ErpProductStockPage() {
       title="상품재고"
       description="쇼핑몰 고객에게는 재고가 표시되지 않습니다. Jubelio 연동 전 ERP 내부 재고 관리용입니다."
     >
+      {errorMsg ? <p className="mb-2 text-sm text-red-600">{errorMsg}</p> : null}
+
       <input
         placeholder="상품명·브랜드 검색"
         value={filter}
@@ -199,5 +206,13 @@ export default function ErpProductStockPage() {
         </>
       )}
     </ErpPageShell>
+  );
+}
+
+export default function ErpProductStockPage() {
+  return (
+    <Suspense fallback={<ErpPageShell title="상품재고">불러오는 중…</ErpPageShell>}>
+      <ErpProductStockContent />
+    </Suspense>
   );
 }

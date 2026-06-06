@@ -7,6 +7,7 @@ import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { api } from "@/lib/api";
 import { OAUTH_ERRORS } from "@/lib/oauth";
 import { mergeCartOnLogin } from "@/lib/cart-store";
+import { mergeWishlistOnLogin } from "@/lib/wishlist-store";
 import { saveSession } from "@/lib/auth-store";
 import type { User } from "@/lib/types";
 
@@ -31,6 +32,7 @@ export function LoginForm() {
       });
       saveSession(data.token, data.user);
       await mergeCartOnLogin(data.token);
+      await mergeWishlistOnLogin(data.token);
       const dest =
         data.user.role === "admin" && !nextUrl.startsWith("/checkout")
           ? "/erp"

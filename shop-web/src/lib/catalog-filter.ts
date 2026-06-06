@@ -103,10 +103,10 @@ export function filterProducts(products: Product[], f: CatalogFilters): Product[
 }
 
 export function catalogTitle(f: CatalogFilters): string {
-  if (f.look === "big-eye") return "빅 아이 효과";
-  if (f.look === "natural") return "내추럴 룩";
-  if (f.look === "wedding") return "웨딩 렌즈";
-  if (f.look) return "콘택트렌즈";
+  if (f.look === "big-eye") return "또렷한 눈매";
+  if (f.look === "natural") return "자연스러운 눈빛";
+  if (f.look === "wedding") return "웨딩·특별한 날";
+  if (f.look) return "컬러렌즈";
   if (f.color) {
     const labels: Record<string, string> = {
       almond: "아몬드",
@@ -116,14 +116,14 @@ export function catalogTitle(f: CatalogFilters): string {
       gray: "그레이",
       clear: "클리어",
     };
-    return labels[f.color] ? `${labels[f.color]} 렌즈` : "색상별 쇼핑";
+    return labels[f.color] ? `${labels[f.color]} 렌즈` : "컬러로 보기";
   }
   if (f.brand) return f.brand;
-  if (f.category === "solutions") return "솔루션 및 드롭";
-  if (f.category === "accessories") return "렌즈 액세서리";
-  if (f.category === "bundles") return "번들 액세서리";
-  if (f.section === "best-seller") return "신규 도착";
-  if (f.section === "bloominc") return "블루밍크";
-  if (f.category === "contact-lenses") return "소프트렌즈";
+  if (f.category === "solutions") return "렌즈 케어";
+  if (f.category === "accessories") return "렌즈 용품";
+  if (f.category === "bundles") return "알뜰 세트";
+  if (f.section === "best-seller") return "베스트 · 신상";
+  if (f.section === "bloominc") return "다연 추천";
+  if (f.category === "contact-lenses") return "컬러렌즈";
   return "상품 목록";
 }

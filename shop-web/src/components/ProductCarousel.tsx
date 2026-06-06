@@ -44,7 +44,7 @@ export function ProductCarousel({
 
   return (
     <section
-      className={`py-10 ${pinkBg ? "bg-[var(--pink-bg)]/60" : "bg-white/40"}`}
+      className={`home-carousel-section py-10 ${pinkBg ? "home-carousel-section--alt" : ""}`}
     >
       <CuteSectionTitle title={title} />
       <div className="relative mx-auto max-w-6xl px-4">
@@ -55,7 +55,7 @@ export function ProductCarousel({
               aria-label="이전 상품"
               onClick={() => scrollTo(index - 1)}
               disabled={index === 0}
-              className="absolute -left-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[var(--pink-border)] bg-white text-lg text-[var(--pink-accent)] shadow-sm transition hover:border-[var(--pink-accent)] hover:bg-[var(--pink-bg)] disabled:opacity-30 md:left-0"
+              className="carousel-nav-btn absolute -left-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[var(--pink-border)] bg-white text-lg text-[var(--pink-accent)] shadow-sm transition hover:border-[var(--pink-accent)] hover:bg-[var(--pink-bg)] disabled:opacity-30 md:left-0"
             >
               ‹
             </button>
@@ -64,7 +64,7 @@ export function ProductCarousel({
               aria-label="다음 상품"
               onClick={() => scrollTo(index + 1)}
               disabled={index >= maxIndex}
-              className="absolute -right-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[var(--pink-border)] bg-white text-lg text-[var(--pink-accent)] shadow-sm transition hover:border-[var(--pink-accent)] hover:bg-[var(--pink-bg)] disabled:opacity-30 md:right-0"
+              className="carousel-nav-btn absolute -right-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[var(--pink-border)] bg-white text-lg text-[var(--pink-accent)] shadow-sm transition hover:border-[var(--pink-accent)] hover:bg-[var(--pink-bg)] disabled:opacity-30 md:right-0"
             >
               ›
             </button>

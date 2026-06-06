@@ -3,14 +3,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NatePagination } from "@/components/NatePagination";
 import { addToCart } from "@/lib/cart-store";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { useAuth } from "@/hooks/useAuth";
+import { useReviewReward } from "@/hooks/useReviewReward";
+import { reviewRewardNotice } from "@/lib/review-reward";
 import { ProductCarousel } from "@/components/ProductCarousel";
+import { WishlistHeartButton } from "@/components/WishlistHeartButton";
 import { useI18n } from "@/components/I18nProvider";
 import { getProductAccordionCopy } from "@/i18n/product-copy";
+import { getProductDisplayBadge } from "@/lib/erp-products";
+import { productShippingLabel } from "@/lib/shipping-fee";
 import type { Product, ProductReview, ReviewSummary } from "@/lib/types";
 
 type Props = {
@@ -19,6 +25,8 @@ type Props = {
 };
 
 type AccordionKey = "description" | "additional" | "shipping" | null;
+
+const PRODUCT_REVIEW_PAGE_SIZE = 4;
 
 function Stars({
   value,
@@ -55,8 +63,11 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
   const router = useRouter();
   const { locale, t } = useI18n();
   const { user, ready } = useAuth();
+  const { reviewReward } = useReviewReward();
+  const rewardNotice = reviewRewardNotice(reviewReward);
   const reviewFormRef = useRef<HTMLDivElement>(null);
   const accordionCopy = getProductAccordionCopy(product, locale);
+  const badge = getProductDisplayBadge(product);
   const images =
     product.images?.length && product.images.length > 0
       ? product.images
@@ -73,14 +84,20 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
   const [qty, setQty] = useState(1);
   const [openSection, setOpenSection] = useState<AccordionKey>(null);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewPage, setReviewPage] = useState(1);
   const [summary, setSummary] = useState(initialSummary);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [reviewMsg, setReviewMsg] = useState("");
   const [related, setRelated] = useState<Product[]>([]);
+  const [wishlistMsg, setWishlistMsg] = useState("");
+  const [reviewEligible, setReviewEligible] = useState<{
+    ok: boolean;
+    reason?: string;
+  } | null>(null);
 
-  function loadReviews() {
+  const loadReviews = useCallback(() => {
     api<{ reviews: ProductReview[]; average: number; count: number }>(
       `/api/products/${product.id}/reviews`,
     )
@@ -89,11 +106,45 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
         setSummary({ average: d.average, count: d.count });
       })
       .catch(() => {});
+  }, [product.id]);
+
+  useEffect(() => {
+    setReviewPage(1);
+    loadReviews();
+  }, [product.id, loadReviews]);
+
+  const totalReviewPages = Math.max(
+    1,
+    Math.ceil(reviews.length / PRODUCT_REVIEW_PAGE_SIZE),
+  );
+  const safeReviewPage = Math.min(reviewPage, totalReviewPages);
+
+  const pageReviews = useMemo(
+    () =>
+      reviews.slice(
+        (safeReviewPage - 1) * PRODUCT_REVIEW_PAGE_SIZE,
+        safeReviewPage * PRODUCT_REVIEW_PAGE_SIZE,
+      ),
+    [reviews, safeReviewPage],
+  );
+
+  function goReviewPage(next: number) {
+    setReviewPage(next);
+    document.getElementById("product-reviews")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   useEffect(() => {
-    loadReviews();
-  }, [product.id]);
+    if (!user) {
+      setReviewEligible(null);
+      return;
+    }
+    api<{ ok: boolean; reason?: string }>(
+      `/api/products/${product.id}/reviews/eligibility`,
+      { token: getToken() },
+    )
+      .then(setReviewEligible)
+      .catch(() => setReviewEligible({ ok: false, reason: "not_delivered" }));
+  }, [product.id, user]);
 
   const scrollToReviewForm = useCallback(() => {
     requestAnimationFrame(() => {
@@ -107,6 +158,7 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
       router.push(`/login?next=/product/${product.id}#product-reviews`);
       return;
     }
+    if (!reviewEligible?.ok) return;
     setShowReviewForm(true);
     scrollToReviewForm();
   }
@@ -117,10 +169,10 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.location.hash === "#product-reviews" && user) {
+    if (window.location.hash === "#product-reviews" && user && reviewEligible?.ok) {
       setShowReviewForm(true);
     }
-  }, [user, product.id]);
+  }, [user, product.id, reviewEligible?.ok]);
 
   useEffect(() => {
     api<{ products: Product[] }>(`/api/products?section=${product.section}`)
@@ -149,14 +201,23 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
       return;
     }
     try {
-      await api(`/api/products/${product.id}/reviews`, {
-        method: "POST",
-        token,
-        body: JSON.stringify({ rating: reviewRating, content: reviewText }),
-      });
+      const data = await api<{ review: ProductReview; pointsAwarded?: number }>(
+        `/api/products/${product.id}/reviews`,
+        {
+          method: "POST",
+          token,
+          body: JSON.stringify({ rating: reviewRating, content: reviewText }),
+        },
+      );
       setReviewText("");
       setShowReviewForm(false);
-      setReviewMsg(t("product.reviewThanks"));
+      const pointsMsg =
+        data.pointsAwarded && data.pointsAwarded > 0
+          ? ` ${data.pointsAwarded.toLocaleString("ko-KR")}포인트가 적립되었습니다.`
+          : "";
+      setReviewMsg(`${t("product.reviewThanks")}${pointsMsg}`);
+      setReviewEligible({ ok: false, reason: "already_reviewed" });
+      setReviewPage(1);
       loadReviews();
     } catch (err) {
       setReviewMsg(err instanceof Error ? err.message : t("product.reviewFail"));
@@ -190,9 +251,9 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
                   className="object-cover"
                   sizes="64px"
                 />
-                {i === 0 && product.badge && (
+                {i === 0 && badge && (
                   <span className="absolute left-0 top-0 bg-[var(--pink-accent)] px-1 text-[9px] font-bold text-white">
-                    {product.badge}
+                    {badge}
                   </span>
                 )}
               </button>
@@ -220,9 +281,9 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
                 }
               }}
             />
-            {product.badge && (
+            {badge && (
               <span className="absolute left-4 top-4 rounded-full bg-[var(--pink-accent)] px-3 py-1 text-xs font-bold text-white">
-                {product.badge}
+                {badge}
               </span>
             )}
           </div>
@@ -231,16 +292,30 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
         {/* 상품 정보 */}
         <div>
           <p className="text-sm font-semibold">{product.brand}</p>
-          <h1 className="mt-1 text-2xl font-semibold md:text-3xl">{product.name}</h1>
+          <div className="mt-1 flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-semibold md:text-3xl">{product.name}</h1>
+            <WishlistHeartButton
+              productId={product.id}
+              onToggle={(added) => {
+                setWishlistMsg(added ? t("product.wishlistAdded") : t("product.wishlistRemoved"));
+                window.setTimeout(() => setWishlistMsg(""), 2200);
+              }}
+            />
+          </div>
 
           <div className="mt-4 flex flex-wrap items-baseline gap-2 text-sm">
-            <span className="text-gray-500">{t("product.recommended")}</span>
-            <span className="text-gray-400 line-through">{formatRp(product.priceOriginal)}</span>
+            {product.priceOriginal > product.priceSale && (
+              <>
+                <span className="text-gray-500">{t("product.recommended")}</span>
+                <span className="text-gray-400 line-through">{formatRp(product.priceOriginal)}</span>
+              </>
+            )}
             <span className="text-gray-500">{t("product.billed")}</span>
             <span className="text-xl font-semibold text-[var(--pink-accent)]">
               {formatRp(product.priceSale)}
             </span>
           </div>
+          <p className="mt-1 text-sm text-gray-600">{productShippingLabel(product)}</p>
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <Stars value={Math.round(summary.average) || 0} starLabel={t("product.star")} />
@@ -249,13 +324,15 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
                 ({summary.count} {t("product.reviews")})
               </span>
             )}
-            <button
-              type="button"
-              onClick={openReviewComposer}
-              className="text-sm text-[var(--pink-accent)] underline-offset-2 hover:underline"
-            >
-              {t("product.writeReview")}
-            </button>
+            {(!user || reviewEligible?.ok) && (
+              <button
+                type="button"
+                onClick={openReviewComposer}
+                className="text-sm text-[var(--pink-accent)] underline-offset-2 hover:underline"
+              >
+                {t("product.writeReview")}
+              </button>
+            )}
           </div>
 
           {powers.length > 0 && (
@@ -355,12 +432,17 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
             </button>
           </div>
 
-          <Link
-            href="/profile/wishlist"
-            className="mt-4 inline-flex items-center gap-1 text-sm text-[var(--pink-accent)]"
-          >
-            ♥ {t("product.wishlist")}
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link
+              href="/profile/wishlist"
+              className="inline-flex items-center gap-1 text-sm text-[var(--pink-accent)] hover:underline"
+            >
+              ♥ {t("product.wishlist")} →
+            </Link>
+            {wishlistMsg && (
+              <span className="text-xs font-medium text-[var(--pink-deep)]">{wishlistMsg}</span>
+            )}
+          </div>
 
           <div className="mt-8 border-t border-gray-200">
             {(
@@ -419,6 +501,14 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
                   {t("product.reviewLoginLink")}
                 </Link>
               </div>
+            ) : reviewEligible?.reason === "already_reviewed" ? (
+              <p className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+                {t("product.reviewAlready")}
+              </p>
+            ) : !reviewEligible?.ok ? (
+              <p className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+                {t("product.reviewDeliveredOnly")}
+              </p>
             ) : showReviewForm ? (
               <form
                 id="product-review-form"
@@ -441,8 +531,11 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
                   required
                 />
                 <p className="mt-2 text-xs text-gray-400">{t("product.reviewPurchaseNote")}</p>
+                {rewardNotice ? (
+                  <p className="mt-1 text-xs font-medium text-[var(--pink-deep)]">{rewardNotice}</p>
+                ) : null}
                 {reviewMsg && <p className="mt-2 text-sm text-green-700">{reviewMsg}</p>}
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex justify-end gap-2">
                   <button
                     type="submit"
                     className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white"
@@ -475,27 +568,36 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
           {reviews.length === 0 ? (
             <p className="text-sm text-gray-600">{t("product.reviewEmpty")}</p>
           ) : (
-            <ul className="space-y-4">
-              {reviews.map((r) => (
-                <li key={r.id} className="rounded-lg bg-white p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--pink-accent)] text-sm font-bold text-white">
-                      {r.userName.charAt(0)}
-                    </span>
-                    <div>
-                      <p className="font-medium">{r.userName}</p>
-                      <Stars value={r.rating} starLabel={t("product.star")} />
+            <>
+              <ul className="space-y-4">
+                {pageReviews.map((r) => (
+                  <li key={r.id} className="rounded-lg bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--pink-accent)] text-sm font-bold text-white">
+                        {r.userName.charAt(0)}
+                      </span>
+                      <div>
+                        <p className="font-medium">{r.userName}</p>
+                        <Stars value={r.rating} starLabel={t("product.star")} />
+                      </div>
+                      <time className="ml-auto text-xs text-gray-400">
+                        {new Date(r.createdAt).toLocaleDateString(
+                          locale === "id" ? "id-ID" : locale === "en" ? "en-US" : "ko-KR",
+                        )}
+                      </time>
                     </div>
-                    <time className="ml-auto text-xs text-gray-400">
-                      {new Date(r.createdAt).toLocaleDateString(
-                        locale === "id" ? "id-ID" : locale === "en" ? "en-US" : "ko-KR",
-                      )}
-                    </time>
-                  </div>
-                  <p className="mt-3 text-sm text-gray-700">{r.content}</p>
-                </li>
-              ))}
-            </ul>
+                    <p className="mt-3 text-sm text-gray-700">{r.content}</p>
+                  </li>
+                ))}
+              </ul>
+              <NatePagination
+                page={safeReviewPage}
+                totalPages={totalReviewPages}
+                basePath={`/product/${product.id}`}
+                onPageChange={goReviewPage}
+                className="mt-6"
+              />
+            </>
           )}
         </div>
       </section>

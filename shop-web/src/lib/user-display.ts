@@ -1,4 +1,5 @@
 import type { User } from "@/lib/types";
+import { normalizeTierId, tierLabel } from "@/lib/tier";
 
 export function displayName(user: Pick<User, "firstName" | "lastName"> | null) {
   if (!user) return "";
@@ -16,10 +17,9 @@ export function userPoints(user: Pick<User, "points"> | null) {
 }
 
 export function userTier(user: Pick<User, "tier" | "points"> | null) {
-  if (user?.tier) return user.tier;
-  const p = userPoints(user);
-  if (p >= 10000) return "VIP";
-  if (p >= 5000) return "골드";
-  if (p >= 1000) return "실버";
-  return "일반";
+  return tierLabel(user?.tier);
+}
+
+export function userTierId(user: Pick<User, "tier"> | null) {
+  return normalizeTierId(user?.tier);
 }

@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { api, getApiBase } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { DEFAULT_CATEGORY_TREE } from "@/lib/default-category-tree";
-import { DEFAULT_FILTER_CATEGORIES, DEFAULT_FILTER_FIELDS } from "@/lib/default-filter-catalog";
+import {
+  DEFAULT_FILTER_CATEGORIES,
+  DEFAULT_FILTER_FIELD_OPTIONS,
+  DEFAULT_FILTER_FIELDS,
+  type FilterOptionFieldId,
+} from "@/lib/default-filter-catalog";
 import { PRODUCT_SECTIONS } from "@/lib/erp-catalog";
 
 export type CategoryTreeNode = {
@@ -22,11 +27,14 @@ export type CatalogItem = {
   sortOrder?: number;
 };
 
+export type FilterFieldOptionsMap = Record<FilterOptionFieldId, CatalogItem[]>;
+
 export type ProductCatalogData = {
   categoryTree: CategoryTreeNode[];
   sections: CatalogItem[];
   filterCategories: CatalogItem[];
   filterFields: CatalogItem[];
+  filterFieldOptions: FilterFieldOptionsMap;
 };
 
 export function getSectionLabel(
@@ -38,12 +46,28 @@ export function getSectionLabel(
 
 export const CATALOG_UPDATED_EVENT = "product-catalog-updated";
 
-const fallbackCatalog = (): ProductCatalogData => ({
+export const fallbackCatalog = (): ProductCatalogData => ({
   categoryTree: DEFAULT_CATEGORY_TREE,
   sections: PRODUCT_SECTIONS.map((s, i) => ({ ...s, sortOrder: i + 1 })),
   filterCategories: DEFAULT_FILTER_CATEGORIES,
   filterFields: DEFAULT_FILTER_FIELDS,
+  filterFieldOptions: { ...DEFAULT_FILTER_FIELD_OPTIONS },
 });
+
+export function mergeFilterFieldOptions(
+  incoming?: Partial<FilterFieldOptionsMap>,
+): FilterFieldOptionsMap {
+  const fb = DEFAULT_FILTER_FIELD_OPTIONS;
+  return {
+    brand: incoming?.brand?.length ? incoming.brand : fb.brand,
+    color: incoming?.color?.length ? incoming.color : fb.color,
+    diameter: incoming?.diameter?.length ? incoming.diameter : fb.diameter,
+    waterContent: incoming?.waterContent?.length ? incoming.waterContent : fb.waterContent,
+    prescription: incoming?.prescription?.length ? incoming.prescription : fb.prescription,
+    baseCurve: incoming?.baseCurve?.length ? incoming.baseCurve : fb.baseCurve,
+    lifespan: incoming?.lifespan?.length ? incoming.lifespan : fb.lifespan,
+  };
+}
 
 export function getFilterFieldLabel(
   fields: CatalogItem[] | undefined,
@@ -70,6 +94,7 @@ export async function fetchProductCatalog(): Promise<ProductCatalogData> {
       sections: data.sections?.length ? data.sections : fb.sections,
       filterCategories: data.filterCategories?.length ? data.filterCategories : fb.filterCategories,
       filterFields: data.filterFields?.length ? data.filterFields : fb.filterFields,
+      filterFieldOptions: mergeFilterFieldOptions(data.filterFieldOptions),
     };
   } catch {
     return fallbackCatalog();
@@ -78,7 +103,7 @@ export async function fetchProductCatalog(): Promise<ProductCatalogData> {
 
 export function useProductCatalog() {
   const [catalog, setCatalog] = useState<ProductCatalogData>(fallbackCatalog);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);

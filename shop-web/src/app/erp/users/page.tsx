@@ -7,10 +7,55 @@ import { MemberDetailModal } from "@/components/erp/MemberDetailModal";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { downloadMembersCsv } from "@/lib/export-members-csv";
+import {
+  DEFAULT_MEMBER_SORT,
+  memberSortQuery,
+  toggleMemberSort,
+  type MemberSortDir,
+  type MemberSortKey,
+} from "@/lib/member-sort";
 import type { AdminMember, AdminUsersPage } from "@/lib/types";
-import { userTier } from "@/lib/user-display";
+import { TierBadge } from "@/components/TierBadge";
 
 const PAGE_SIZE = 10;
+
+function SortableTh({
+  label,
+  column,
+  sortBy,
+  sortDir,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  column: MemberSortKey;
+  sortBy: MemberSortKey;
+  sortDir: MemberSortDir;
+  onSort: (column: MemberSortKey) => void;
+  align?: "left" | "right" | "center";
+}) {
+  const active = sortBy === column;
+  const arrow = !active ? "↕" : sortDir === "desc" ? "↓" : "↑";
+  const alignClass =
+    align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+
+  return (
+    <th className={`whitespace-nowrap px-2 py-1.5 ${alignClass}`}>
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={`inline-flex items-center gap-0.5 font-medium transition hover:text-gray-800 ${
+          active ? "text-[var(--pink-accent)]" : "text-gray-500"
+        }`}
+      >
+        <span>{label}</span>
+        <span className="text-[10px] opacity-80" aria-hidden>
+          {arrow}
+        </span>
+      </button>
+    </th>
+  );
+}
 
 function formatDate(iso: string | null) {
   if (!iso) return "-";
@@ -52,29 +97,44 @@ export default function ErpUsersPage() {
   const [actionMsg, setActionMsg] = useState("");
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sortBy, setSortBy] = useState<MemberSortKey>(DEFAULT_MEMBER_SORT.sortBy);
+  const [sortDir, setSortDir] = useState<MemberSortDir>(DEFAULT_MEMBER_SORT.sortDir);
 
-  const load = useCallback(async (p: number) => {
-    setLoading(true);
-    try {
-      const data = await api<AdminUsersPage>(
-        `/api/admin/users?page=${p}&pageSize=${PAGE_SIZE}`,
-        { token: getToken() },
-      );
-      setUsers(data.users);
-      setPage(data.page);
-      setTotal(data.total);
-      setTotalPages(data.totalPages);
-      setSelectedIds(new Set());
-    } catch {
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (p: number, sort: { sortBy: MemberSortKey; sortDir: MemberSortDir }) => {
+      setLoading(true);
+      try {
+        const q = memberSortQuery(sort.sortBy, sort.sortDir);
+        const data = await api<AdminUsersPage>(
+          `/api/admin/users?page=${p}&pageSize=${PAGE_SIZE}&${q}`,
+          { token: getToken() },
+        );
+        setUsers(data.users);
+        setPage(data.page);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+        if (data.sortBy) setSortBy(data.sortBy as MemberSortKey);
+        if (data.sortDir) setSortDir(data.sortDir);
+        setSelectedIds(new Set());
+      } catch {
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    load(page);
-  }, [load, page]);
+    load(page, { sortBy, sortDir });
+  }, [load, page, sortBy, sortDir]);
+
+  function handleSort(column: MemberSortKey) {
+    const next = toggleMemberSort({ sortBy, sortDir }, column);
+    setSortBy(next.sortBy);
+    setSortDir(next.sortDir);
+    setPage(1);
+  }
 
   const pageIds = useMemo(() => users.map((u) => u.id), [users]);
   const allPageSelected =
@@ -125,7 +185,7 @@ export default function ErpUsersPage() {
         msg += ` (관리자 ${result.skippedAdmin}명은 제외)`;
       }
       setActionMsg(msg);
-      await load(page);
+      await load(page, { sortBy, sortDir });
     } catch (err) {
       setActionMsg(err instanceof Error ? err.message : "삭제에 실패했습니다.");
     } finally {
@@ -137,10 +197,12 @@ export default function ErpUsersPage() {
     setExporting(true);
     setActionMsg("");
     try {
-      const data = await api<{ users: AdminMember[] }>("/api/admin/users/export", {
+      const q = memberSortQuery(sortBy, sortDir);
+      const data = await api<{ users: AdminMember[] }>(`/api/admin/users/export?${q}`, {
         token: getToken(),
       });
-      downloadMembersCsv(data.users);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadMembersCsv(data.users, `회원목록_${stamp}.csv`);
       setActionMsg(`회원 ${data.users.length}명 엑셀(CSV) 다운로드를 시작했습니다.`);
     } catch (err) {
       setActionMsg(err instanceof Error ? err.message : "다운로드에 실패했습니다.");
@@ -186,30 +248,92 @@ export default function ErpUsersPage() {
                 />
               </th>
               <th className="whitespace-nowrap px-2 py-1.5">No</th>
-              <th className="whitespace-nowrap px-2 py-1.5">가입일</th>
+              <SortableTh
+                label="가입일"
+                column="createdAt"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+              />
               <th className="whitespace-nowrap px-2 py-1.5">이름</th>
               <th className="whitespace-nowrap px-2 py-1.5">연락처</th>
               <th className="px-2 py-1.5">주소</th>
               <th className="px-2 py-1.5">메일</th>
-              <th className="whitespace-nowrap px-2 py-1.5 text-right">총구매금액</th>
-              <th className="whitespace-nowrap px-2 py-1.5 text-right">구매건수</th>
-              <th className="whitespace-nowrap px-2 py-1.5 text-center">등급</th>
-              <th className="whitespace-nowrap px-2 py-1.5 text-right">적립금액</th>
-              <th className="whitespace-nowrap px-2 py-1.5 text-center">장바구니</th>
-              <th className="whitespace-nowrap px-2 py-1.5">최근로그인</th>
-              <th className="whitespace-nowrap px-2 py-1.5 text-right">접속횟수</th>
+              <SortableTh
+                label="총구매금액"
+                column="totalPurchaseAmount"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                align="right"
+              />
+              <SortableTh
+                label="구매건수"
+                column="purchaseCount"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                align="right"
+              />
+              <SortableTh
+                label="등급"
+                column="tier"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                align="center"
+              />
+              <SortableTh
+                label="적립금액"
+                column="points"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                align="right"
+              />
+              <SortableTh
+                label="사용금액"
+                column="pointsUsed"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                align="right"
+              />
+              <SortableTh
+                label="장바구니"
+                column="cartCount"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                align="center"
+              />
+              <SortableTh
+                label="최근로그인"
+                column="lastLoginAt"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+              />
+              <SortableTh
+                label="접속횟수"
+                column="loginCount"
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                align="right"
+              />
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={14} className="px-2 py-4 text-center text-gray-400">
+                <td colSpan={15} className="px-2 py-4 text-center text-gray-400">
                   불러오는 중…
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={14} className="px-2 py-4 text-center text-gray-400">
+                <td colSpan={15} className="px-2 py-4 text-center text-gray-400">
                   등록된 회원이 없습니다.
                 </td>
               </tr>
@@ -255,11 +379,20 @@ export default function ErpUsersPage() {
                       {formatRp(u.totalPurchaseAmount)}
                     </td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-right">{u.purchaseCount}</td>
-                    <td className="whitespace-nowrap px-2 py-1.5 text-center font-medium text-gray-700">
-                      {userTier(u)}
+                    <td className="whitespace-nowrap px-2 py-1.5 text-center">
+                      <TierBadge tier={u.tier} size="sm" />
                     </td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-right">
                       {formatRp(u.points)}
+                    </td>
+                    <td
+                      className={`whitespace-nowrap px-2 py-1.5 text-right ${
+                        (u.pointsUsed || 0) > 0 ? "font-medium text-red-600" : "text-gray-500"
+                      }`}
+                    >
+                      {(u.pointsUsed || 0) > 0
+                        ? `-${formatRp(u.pointsUsed)}`
+                        : formatRp(0)}
                     </td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-center text-gray-600">
                       {u.cartCount > 0 ? `(${u.cartCount})` : "-"}

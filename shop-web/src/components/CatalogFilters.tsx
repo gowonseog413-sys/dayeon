@@ -7,7 +7,7 @@ import {
   type CatalogFilters as CatalogFiltersState,
   filtersToQuery,
 } from "@/lib/catalog-filter";
-import { getFilterFieldLabel } from "@/lib/product-catalog-store";
+import { getFilterFieldLabel, mergeFilterFieldOptions } from "@/lib/product-catalog-store";
 import { useShopCatalog } from "@/lib/use-shop-catalog";
 import type { Product } from "@/lib/types";
 
@@ -34,12 +34,16 @@ export function CatalogFilters({ products, filters }: Props) {
   const { t } = useI18n();
   const { catalog } = useShopCatalog();
   const [draft, setDraft] = useState<CatalogFiltersState>({ ...filters });
+  const filterFieldOptions = useMemo(
+    () => mergeFilterFieldOptions(catalog.filterFieldOptions),
+    [catalog.filterFieldOptions],
+  );
 
   const fieldLabel = (id: string) =>
     getFilterFieldLabel(catalog.filterFields, id) ?? t(FIELD_I18N[id] ?? id);
 
   const categoryOptions = useMemo(() => {
-    const sorted = [...catalog.filterCategories].sort(
+    const sorted = [...(catalog.filterCategories || [])].sort(
       (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
     );
     return [
@@ -48,21 +52,27 @@ export function CatalogFilters({ products, filters }: Props) {
     ];
   }, [catalog.filterCategories, t]);
 
-  const lifespanOpts = useMemo(
-    () => [
-      { value: "", label: t("catalog.selectLifespan") },
-      { value: "daily", label: t("catalog.lifespan.daily") },
-      { value: "1month", label: t("catalog.lifespan.1m") },
-      { value: "3months", label: t("catalog.lifespan.3m") },
-      { value: "6months", label: t("catalog.lifespan.6m") },
-      { value: "1year", label: t("catalog.lifespan.1y") },
-    ],
-    [t],
+  const brandOptions = useFilterSelectOptions(filterFieldOptions.brand, t("catalog.selectBrand"));
+  const colorOptions = useFilterSelectOptions(filterFieldOptions.color, t("catalog.selectColor"));
+  const diameterOptions = useFilterSelectOptions(
+    filterFieldOptions.diameter,
+    t("catalog.selectDiameter"),
   );
-
-  const brands = useMemo(
-    () => [...new Set(products.map((p) => p.brand))].sort(),
-    [products],
+  const waterOptions = useFilterSelectOptions(
+    filterFieldOptions.waterContent,
+    t("catalog.selectWater"),
+  );
+  const prescriptionOptions = useFilterSelectOptions(
+    filterFieldOptions.prescription,
+    t("catalog.selectRx"),
+  );
+  const baseCurveOptions = useFilterSelectOptions(
+    filterFieldOptions.baseCurve,
+    t("catalog.selectBc"),
+  );
+  const lifespanOptions = useFilterSelectOptions(
+    filterFieldOptions.lifespan,
+    t("catalog.selectLifespan"),
   );
 
   function set(key: keyof CatalogFiltersState, value: string) {
@@ -97,10 +107,7 @@ export function CatalogFilters({ products, filters }: Props) {
           label={fieldLabel("brand")}
           value={draft.brand ?? ""}
           onChange={(v) => set("brand", v)}
-          options={[
-            { value: "", label: t("catalog.selectBrand") },
-            ...brands.map((b) => ({ value: b, label: b })),
-          ]}
+          options={brandOptions}
         />
         {isLens && (
           <>
@@ -108,64 +115,37 @@ export function CatalogFilters({ products, filters }: Props) {
               label={fieldLabel("color")}
               value={draft.color ?? ""}
               onChange={(v) => set("color", v)}
-              options={[
-                { value: "", label: t("catalog.selectColor") },
-                { value: "almond", label: t("catalog.color.almond") },
-                { value: "black", label: t("catalog.color.black") },
-                { value: "brown", label: t("catalog.color.brown") },
-                { value: "choco", label: t("catalog.color.choco") },
-                { value: "gray", label: t("catalog.color.gray") },
-                { value: "clear", label: t("catalog.color.clear") },
-              ]}
+              options={colorOptions}
             />
             <FilterSelect
               label={fieldLabel("diameter")}
               value={draft.diameter ?? ""}
               onChange={(v) => set("diameter", v)}
-              options={[
-                { value: "", label: t("catalog.selectDiameter") },
-                { value: "14.0", label: "14.00 mm" },
-                { value: "14.2", label: "14.20 mm" },
-                { value: "14.5", label: "14.50 mm" },
-              ]}
+              options={diameterOptions}
             />
             <FilterSelect
               label={fieldLabel("waterContent")}
               value={draft.waterContent ?? ""}
               onChange={(v) => set("waterContent", v)}
-              options={[
-                { value: "", label: t("catalog.selectWater") },
-                { value: "48", label: "48%" },
-                { value: "55", label: "55%" },
-                { value: "58", label: "58%" },
-              ]}
+              options={waterOptions}
             />
             <FilterSelect
               label={fieldLabel("prescription")}
               value={draft.prescription ?? ""}
               onChange={(v) => set("prescription", v)}
-              options={[
-                { value: "", label: t("catalog.selectRx") },
-                { value: "normal", label: t("catalog.rx.normal") },
-                { value: "myopia", label: t("catalog.rx.myopia") },
-              ]}
+              options={prescriptionOptions}
             />
             <FilterSelect
               label={fieldLabel("baseCurve")}
               value={draft.baseCurve ?? ""}
               onChange={(v) => set("baseCurve", v)}
-              options={[
-                { value: "", label: t("catalog.selectBc") },
-                { value: "8.6", label: "8.60 mm" },
-                { value: "8.7", label: "8.70 mm" },
-                { value: "8.8", label: "8.80 mm" },
-              ]}
+              options={baseCurveOptions}
             />
             <FilterSelect
               label={fieldLabel("lifespan")}
               value={draft.lifespan ?? ""}
               onChange={(v) => set("lifespan", v)}
-              options={lifespanOpts}
+              options={lifespanOptions}
             />
           </>
         )}
@@ -216,6 +196,19 @@ export function CatalogFilters({ products, filters }: Props) {
       </div>
     </aside>
   );
+}
+
+function useFilterSelectOptions(
+  items: { id: string; label: string; sortOrder?: number }[] | undefined,
+  placeholder: string,
+) {
+  return useMemo(() => {
+    const sorted = [...(items || [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    return [
+      { value: "", label: placeholder },
+      ...sorted.map((o) => ({ value: o.id, label: o.label })),
+    ];
+  }, [items, placeholder]);
 }
 
 function FilterSelect({

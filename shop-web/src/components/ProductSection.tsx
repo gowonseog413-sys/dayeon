@@ -18,7 +18,7 @@ export function ProductSection({
   if (!products.length) return null;
 
   return (
-    <section className={`py-10 ${pinkBg ? "bg-[var(--pink-bg)]/60" : ""}`}>
+    <section className={`home-carousel-section py-10 ${pinkBg ? "home-carousel-section--alt" : ""}`}>
       <CuteSectionTitle title={title} />
       <div
         className={`mx-auto grid max-w-6xl gap-5 px-4 ${

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { mergeCartOnLogin } from "@/lib/cart-store";
+import { mergeWishlistOnLogin } from "@/lib/wishlist-store";
 import { saveSession } from "@/lib/auth-store";
 import type { User } from "@/lib/types";
 
@@ -24,6 +25,7 @@ function CallbackHandler() {
       .then(async (data) => {
         saveSession(token, data.user);
         await mergeCartOnLogin(token);
+        await mergeWishlistOnLogin(token);
         const dest = next.startsWith("/login") ? "/profile" : next;
         window.location.href = dest;
       })

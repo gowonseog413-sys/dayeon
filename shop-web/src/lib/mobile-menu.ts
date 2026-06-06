@@ -12,5 +12,5 @@ export const MOBILE_MENU_SUPPORT = [
   { href: "/support/faq", labelKey: "footer.faq" },
   { href: "/support/shipping", labelKey: "footer.shipping" },
   { href: "/support/returns", labelKey: "footer.returns" },
-  { labelKey: "footer.contact", mailto: true as const },
+  { href: "/profile/inquiries", labelKey: "footer.contact" },
 ] as const;

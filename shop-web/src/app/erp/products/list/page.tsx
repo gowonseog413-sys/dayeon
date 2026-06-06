@@ -7,7 +7,7 @@ import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { ErpPagination } from "@/components/erp/ErpPagination";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
-import { filterProducts, PRODUCT_PAGE_SIZE } from "@/lib/erp-products";
+import { filterProducts, formatProductDate, PRODUCT_PAGE_SIZE } from "@/lib/erp-products";
 import { productImageFallback } from "@/lib/product-image-fallback";
 import type { Product } from "@/lib/types";
 
@@ -78,6 +78,7 @@ export default function ErpProductListPage() {
               <thead className="border-b bg-gray-50 text-gray-500">
                 <tr>
                   <th className="w-12 px-2 py-1.5">No.</th>
+                  <th className="w-24 px-2 py-1.5 whitespace-nowrap">등록날짜</th>
                   <th className="px-2 py-1.5">이미지</th>
                   <th className="px-2 py-1.5">브랜드 / 이름</th>
                   <th className="px-2 py-1.5">카테고리</th>
@@ -126,6 +127,9 @@ function ProductRow({
   return (
     <tr className="border-b border-gray-50">
       <td className="px-2 py-1.5 font-medium text-gray-600">{no}</td>
+      <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-600">
+        {formatProductDate(p.createdAt)}
+      </td>
       <td className="px-2 py-1.5">
         <div className="relative h-10 w-10 overflow-hidden rounded bg-gray-50">
           <Image

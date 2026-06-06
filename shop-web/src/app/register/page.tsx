@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { api } from "@/lib/api";
 import { mergeCartOnLogin } from "@/lib/cart-store";
+import { mergeWishlistOnLogin } from "@/lib/wishlist-store";
 import { saveSession } from "@/lib/auth-store";
 import type { User } from "@/lib/types";
 
@@ -31,6 +32,7 @@ export default function RegisterPage() {
       });
       saveSession(data.token, data.user);
       await mergeCartOnLogin(data.token);
+      await mergeWishlistOnLogin(data.token);
       window.location.href = "/profile";
     } catch (err) {
       setError(err instanceof Error ? err.message : "가입 실패");

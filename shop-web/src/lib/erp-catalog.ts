@@ -1,16 +1,16 @@
 export const PRODUCT_CATEGORIES = [
-  { id: "contact-lenses", label: "소프트렌즈 (콘택트렌즈)" },
-  { id: "solutions", label: "솔루션 및 드롭" },
-  { id: "accessories", label: "렌즈 액세서리" },
-  { id: "bundles", label: "번들" },
+  { id: "contact-lenses", label: "컬러렌즈" },
+  { id: "solutions", label: "렌즈 케어" },
+  { id: "accessories", label: "렌즈 용품" },
+  { id: "bundles", label: "알뜰 세트" },
 ] as const;
 
 export const PRODUCT_SECTIONS = [
-  { id: "bloominc", label: "블루밍크" },
-  { id: "best-seller", label: "신규 도착 / 베스트" },
-  { id: "solutions", label: "솔루션" },
-  { id: "accessories", label: "액세서리" },
-  { id: "bundles", label: "번들" },
+  { id: "bloominc", label: "다연 추천" },
+  { id: "best-seller", label: "베스트 · 신상" },
+  { id: "solutions", label: "렌즈 케어" },
+  { id: "accessories", label: "렌즈 용품" },
+  { id: "bundles", label: "알뜰 세트" },
 ] as const;
 
 /** ERP에서 섹션 편집 가능 — API CMS와 쇼핑몰 연동 */

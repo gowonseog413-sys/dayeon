@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { ArticleListTable } from "@/components/erp/ArticleListTable";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { NatePagination } from "@/components/NatePagination";
@@ -10,7 +10,7 @@ import { ARTICLE_PAGE_SIZE } from "@/lib/erp-articles";
 import { getToken } from "@/lib/auth-store";
 import type { Article } from "@/lib/types";
 
-export default function ErpArticlesListPage() {
+function ErpArticlesListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -70,5 +70,13 @@ export default function ErpArticlesListPage() {
         </>
       )}
     </ErpPageShell>
+  );
+}
+
+export default function ErpArticlesListPage() {
+  return (
+    <Suspense fallback={<ErpPageShell title="기사 목록">불러오는 중…</ErpPageShell>}>
+      <ErpArticlesListContent />
+    </Suspense>
   );
 }

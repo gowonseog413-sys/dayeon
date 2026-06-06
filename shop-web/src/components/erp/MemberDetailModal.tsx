@@ -9,6 +9,7 @@ import {
   profileSummary,
   type PaymentProfile,
 } from "@/lib/payment-methods";
+import { TierBadge } from "@/components/TierBadge";
 import type { AdminMember } from "@/lib/types";
 
 type Props = {
@@ -107,7 +108,7 @@ export function MemberDetailModal({ member, onClose }: Props) {
             <Row label="메일" value={member.email} />
             <Row label="연락처" value={member.phone || "-"} />
             <Row label="주소" value={member.address || "-"} />
-            <Row label="등급" value={member.tier || "-"} />
+            <Row label="등급" value={<TierBadge tier={member.tier} size="sm" />} />
             <Row label="역할" value={member.role === "admin" ? "관리자" : "회원"} />
             <Row label="가입방식" value={member.authProvider || "local"} />
             <Row label="가입일" value={formatDate(member.createdAt)} />
@@ -116,6 +117,18 @@ export function MemberDetailModal({ member, onClose }: Props) {
             <Row label="총구매금액" value={formatRp(member.totalPurchaseAmount)} />
             <Row label="구매건수" value={member.purchaseCount} />
             <Row label="적립금액" value={formatRp(member.points)} />
+            <Row
+              label="사용금액"
+              value={
+                (member.pointsUsed || 0) > 0 ? (
+                  <span className="font-medium text-red-600">
+                    -{formatRp(member.pointsUsed)}
+                  </span>
+                ) : (
+                  formatRp(0)
+                )
+              }
+            />
             <Row
               label="장바구니"
               value={

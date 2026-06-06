@@ -21,18 +21,42 @@ export function CuteSectionTitle({ title, className = "" }: Props) {
       >
         ◆
       </span>
-      <span>{title}</span>
       <span
-        className="section-title-deco--flower text-base text-[var(--pink-accent)] sm:text-lg"
+        className="section-title-deco--dark text-base text-[var(--pink-accent)] sm:text-lg"
         aria-hidden
       >
-        ✿
+        ✦
+      </span>
+      <span
+        className="section-title-deco--aqua text-base text-[var(--pink-accent)] sm:text-lg"
+        aria-hidden
+      >
+        ◎
+      </span>
+      <span>{title}</span>
+      <span
+        className="section-title-deco--aqua text-base text-[var(--pink-accent)] sm:text-lg"
+        aria-hidden
+      >
+        ◎
+      </span>
+      <span
+        className="section-title-deco--dark text-base text-[var(--pink-accent)] sm:text-lg"
+        aria-hidden
+      >
+        ✦
       </span>
       <span
         className="section-title-deco--id text-base text-[var(--pink-accent)] sm:text-lg"
         aria-hidden
       >
         ◆
+      </span>
+      <span
+        className="section-title-deco--flower text-base text-[var(--pink-accent)] sm:text-lg"
+        aria-hidden
+      >
+        ✿
       </span>
     </h2>
   );
