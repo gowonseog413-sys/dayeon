@@ -131,6 +131,8 @@ export type CatalogUsageProduct = {
 export type InUseError = {
   error: "IN_USE";
   count: number;
+  productCount?: number;
+  optionCount?: number;
   products: CatalogUsageProduct[];
   message: string;
 };

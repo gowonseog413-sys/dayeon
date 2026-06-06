@@ -217,9 +217,7 @@ export default function ErpFilterCatalogPage() {
       if (!force && isInUseError(err)) {
         setFieldDeleteWarn(true);
         setFieldDeleteProductCount(err.data.productCount ?? err.data.count ?? 0);
-        setFieldDeleteOptionCount(
-          (err.data as { optionCount?: number }).optionCount ?? fieldDeleteOptionCount,
-        );
+        setFieldDeleteOptionCount(err.data.optionCount ?? fieldDeleteOptionCount);
         setFieldDeleteProducts(err.data.products);
         return;
       }
