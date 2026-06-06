@@ -121,7 +121,7 @@ function usePartnerBannerMotion(railRef: React.RefObject<HTMLElement | null>) {
     syncSticky();
     window.addEventListener("resize", syncSticky);
     const ro = header ? new ResizeObserver(syncSticky) : null;
-    ro?.observe(header);
+    if (header && ro) ro.observe(header);
 
     const stack = rail.querySelector<HTMLElement>(".partner-banner-stack");
     let raf = 0;

@@ -103,9 +103,8 @@ function ErpUsersPointsContent() {
       }>("/api/admin/settings/points", { token: getToken() });
       setSettings(data.settings);
       setSignupBonus({
-        welcomeMessageEnabled: true,
-        welcomeMessage: DEFAULT_WELCOME_MESSAGE,
         ...data.signupBonus,
+        welcomeMessage: data.signupBonus.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
       });
       setMembers(data.members);
     } catch {
@@ -169,9 +168,8 @@ function ErpUsersPointsContent() {
         body: JSON.stringify({ signupBonus: next }),
       });
       setSignupBonus({
-        welcomeMessageEnabled: true,
-        welcomeMessage: DEFAULT_WELCOME_MESSAGE,
         ...data.signupBonus,
+        welcomeMessage: data.signupBonus.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
       });
       const welcomeNote = data.signupBonus.welcomeMessageEnabled
         ? " · 환영 편지 발송 ON"
@@ -197,9 +195,8 @@ function ErpUsersPointsContent() {
         { method: "DELETE", token: getToken() },
       );
       setSignupBonus({
-        welcomeMessageEnabled: true,
-        welcomeMessage: DEFAULT_WELCOME_MESSAGE,
         ...data.signupBonus,
+        welcomeMessage: data.signupBonus.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
       });
       showSaveSuccess({ message: "초기화되었습니다", subMessage: "가입 포인트 설정이 기본값으로 돌아갔습니다." });
     } catch (err) {
@@ -243,7 +240,7 @@ function ErpUsersPointsContent() {
       <ErpContentTabs
         tabs={[...POINTS_TABS]}
         active={activeTab}
-        onChange={setTab}
+        onChange={(id) => setTab(id as PointsTabId)}
         className="mb-2"
       />
 

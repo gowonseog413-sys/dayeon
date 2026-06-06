@@ -114,19 +114,27 @@ function AquaBubbleRing({ className = "" }: { className?: string }) {
   );
 }
 
-function AquaSocialChip({ label, children }: { label: string; children: ReactNode }) {
+function AquaSocialChip({
+  label,
+  href,
+  children,
+}: {
+  label: string;
+  href?: string;
+  children: ReactNode;
+}) {
   return (
-    <span
+    <SocialLink
+      href={href}
+      label={label}
       className="relative flex h-10 w-10 items-center justify-center text-[#0e7490] transition hover:scale-105"
-      title={label}
-      aria-label={label}
     >
       <AquaBubbleRing />
       <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-[0_3px_12px_rgba(14,116,144,0.14)] ring-1 ring-sky-100">
         {children}
       </span>
       <span className="absolute -right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-cyan-300/90" aria-hidden />
-    </span>
+    </SocialLink>
   );
 }
 
