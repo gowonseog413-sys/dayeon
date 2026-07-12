@@ -274,51 +274,33 @@ const products = [
 ];
 
 async function seed() {
-  const hash = await bcrypt.hash("admin1234", 10);
-  const demoHash = await bcrypt.hash("demo1234", 10);
+  const hash = await bcrypt.hash("admin1004", 10);
 
   const db = {
     users: [
       {
         id: "u-admin",
-        email: "admin@eyesight.local",
+        email: "dayeon@naver.com",
         passwordHash: hash,
         authProvider: "local",
         googleId: null,
         avatarUrl: null,
-        firstName: "Admin",
-        lastName: "ERP",
+        firstName: "다연",
+        lastName: "Admin",
         phone: "010-0000-0001",
         address: "서울특별시 강남구 테헤란로 1",
         role: "admin",
-        points: 0,
+        points: 5000,
         loginCount: 12,
         lastLoginAt: new Date().toISOString(),
         createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-      },
-      {
-        id: "u-demo",
-        email: "demo@eyesight.local",
-        passwordHash: demoHash,
-        authProvider: "local",
-        googleId: null,
-        avatarUrl: null,
-        firstName: "고원석",
-        lastName: "Demo",
-        phone: "010-1234-5678",
-        address: "경기도 성남시 분당구 정자동 12-3",
-        role: "customer",
-        points: 5000,
-        loginCount: 7,
-        lastLoginAt: new Date(Date.now() - 3600000).toISOString(),
-        createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
       },
     ],
     products,
     orders: [
       {
         id: "o-demo-1",
-        userId: "u-demo",
+        userId: "u-admin",
         status: "paid",
         total: 258000,
         items: [{ productId: "p1", quantity: 2 }],
@@ -327,7 +309,7 @@ async function seed() {
     ],
     carts: [
       {
-        userId: "u-demo",
+        userId: "u-admin",
         items: [
           {
             id: "cart-demo-1",
@@ -355,8 +337,7 @@ async function seed() {
 
   writeDb(db);
   console.log("Seed complete:");
-  console.log("  admin@eyesight.local / admin1234 (ERP)");
-  console.log("  demo@eyesight.local / demo1234 (고객)");
+  console.log("  dayeon@naver.com / admin1004 (ERP · 고객 테스트)");
   console.log(`  ${products.length} products`);
 }
 

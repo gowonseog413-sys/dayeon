@@ -2,16 +2,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpContentTabs } from "@/components/erp/ErpContentTabs";
 import { ProfileCartPanel } from "@/components/profile/ProfileCartPanel";
 import { ProfileWishlistPanel } from "@/components/profile/ProfileWishlistPanel";
 
-const CART_WISHLIST_TABS = [
-  { id: "cart", label: "장바구니" },
-  { id: "wishlist", label: "위시리스트" },
-] as const;
-
-type CartWishlistTabId = (typeof CART_WISHLIST_TABS)[number]["id"];
+const CART_WISHLIST_TAB_IDS = ["cart", "wishlist"] as const;
+type CartWishlistTabId = (typeof CART_WISHLIST_TAB_IDS)[number];
 
 function isCartWishlistTabId(value: string | null): value is CartWishlistTabId {
   return value === "cart" || value === "wishlist";
@@ -20,6 +17,7 @@ function isCartWishlistTabId(value: string | null): value is CartWishlistTabId {
 function ProfileCartWishlistContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const tabParam = searchParams.get("tab");
   const activeTab: CartWishlistTabId = isCartWishlistTabId(tabParam) ? tabParam : "cart";
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -38,14 +36,15 @@ function ProfileCartWishlistContent() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-[var(--pink-deep)]">장바구니 · 위시</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        장바구니에 담은 상품과 위시리스트에 저장한 관심 상품을 확인할 수 있습니다.
-      </p>
+      <h1 className="text-2xl font-semibold text-[var(--pink-deep)]">{t("profile.title.wishlist")}</h1>
+      <p className="mt-1 text-sm text-gray-500">{t("profile.desc.wishlist")}</p>
 
       <ErpContentTabs
         className="mt-5"
-        tabs={[...CART_WISHLIST_TABS]}
+        tabs={CART_WISHLIST_TAB_IDS.map((id) => ({
+          id,
+          label: t(id === "cart" ? "profile.tab.cart" : "profile.tab.wishlistOnly"),
+        }))}
         active={activeTab}
         onChange={setTab}
       />
@@ -62,8 +61,9 @@ function ProfileCartWishlistContent() {
 }
 
 export default function ProfileWishlistPage() {
+  const { t } = useI18n();
   return (
-    <Suspense fallback={<p className="text-sm text-gray-500">로딩 중...</p>}>
+    <Suspense fallback={<p className="text-sm text-gray-500">{t("common.loading")}</p>}>
       <ProfileCartWishlistContent />
     </Suspense>
   );

@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import { CHANNEL_TYPE_LABEL, type PaymentChannel } from "@/lib/payment-methods";
 
 export default function ErpPaymentsPage() {
+  const { t } = useI18n();
   const [channels, setChannels] = useState<PaymentChannel[]>([]);
   const { showSaveSuccess } = useErpSaveSuccess();
   const [errorMsg, setErrorMsg] = useState("");
@@ -17,7 +19,7 @@ export default function ErpPaymentsPage() {
 
   function load() {
     setLoading(true);
-    api<{ channels: PaymentChannel[] }>("/api/admin/payments/channels", { token: getToken() })
+    api<{ channels: PaymentChannel[] }>("/api/admin/payments/channels", { token: getErpToken() })
       .then((d) => setChannels(d.channels))
       .catch(() => setChannels([]))
       .finally(() => setLoading(false));
@@ -33,13 +35,13 @@ export default function ErpPaymentsPage() {
     try {
       await api("/api/admin/payments/channels", {
         method: "PUT",
-        token: getToken(),
+        token: getErpToken(),
         body: JSON.stringify({ channels }),
       });
-      showSaveSuccess({ subMessage: "결제 채널 설정이 반영되었습니다." });
+      showSaveSuccess({ subMessage: t("erp.payments.saveSuccess") });
       load();
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : "저장 실패");
+      setErrorMsg(e instanceof Error ? e.message : t("erp.common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -49,16 +51,16 @@ export default function ErpPaymentsPage() {
     setChannels((prev) => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   }
 
-  if (loading) return <ErpPageShell title="결제 채널 설정">불러오는 중…</ErpPageShell>;
+  if (loading) {
+    return (
+      <ErpPageShell titleKey="erp.nav.paymentsChannels">{t("erp.common.loading")}</ErpPageShell>
+    );
+  }
 
   return (
-    <ErpPageShell
-      title="결제 채널 설정"
-      description="쇼핑몰·체크아웃에 노출되는 결제수단과 Jubelio 채널 코드를 관리합니다."
-    >
+    <ErpPageShell titleKey="erp.nav.paymentsChannels" descriptionKey="erp.payments.channelsDesc">
       <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        인도네시아: 신용카드(Midtrans), GoPay(충전식 e-wallet), 가상계좌(BCA/Mandiri/BNI/BRI)를
-        Jubelio OMS 결제 채널과 매핑합니다.
+        {t("erp.payments.indonesiaNote")}
       </p>
       {errorMsg ? <p className="mb-2 text-sm text-red-600">{errorMsg}</p> : null}
 
@@ -75,12 +77,12 @@ export default function ErpPaymentsPage() {
                   checked={ch.enabled}
                   onChange={(e) => update(idx, { enabled: e.target.checked })}
                 />
-                쇼핑몰 노출
+                {t("erp.payments.storeVisible")}
               </label>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-sm">
-                한글명
+                {t("erp.payments.nameKo")}
                 <input
                   value={ch.nameKo}
                   onChange={(e) => update(idx, { nameKo: e.target.value })}
@@ -88,7 +90,7 @@ export default function ErpPaymentsPage() {
                 />
               </label>
               <label className="text-sm">
-                인도네시아어명
+                {t("erp.payments.nameId")}
                 <input
                   value={ch.nameId}
                   onChange={(e) => update(idx, { nameId: e.target.value })}
@@ -96,7 +98,7 @@ export default function ErpPaymentsPage() {
                 />
               </label>
               <label className="text-sm sm:col-span-2">
-                Jubelio 채널 코드
+                {t("erp.payments.jubelioCode")}
                 <input
                   value={ch.jubelioCode}
                   onChange={(e) => update(idx, { jubelioCode: e.target.value })}
@@ -104,7 +106,7 @@ export default function ErpPaymentsPage() {
                 />
               </label>
               <label className="text-sm sm:col-span-2">
-                설명 (한글)
+                {t("erp.payments.descKo")}
                 <textarea
                   rows={2}
                   value={ch.descriptionKo}
@@ -114,7 +116,7 @@ export default function ErpPaymentsPage() {
               </label>
               {ch.type === "virtual_account" && (
                 <label className="text-sm sm:col-span-2">
-                  지원 VA 은행 (쉼표 구분)
+                  {t("erp.payments.vaBanks")}
                   <input
                     value={(ch.vaBanks || []).join(", ")}
                     onChange={(e) =>
@@ -138,7 +140,7 @@ export default function ErpPaymentsPage() {
           disabled={saving}
           className="rounded-lg bg-gray-800 px-5 py-2 text-sm text-white hover:bg-gray-900 disabled:opacity-60"
         >
-          {saving ? "저장 중…" : "채널 설정 저장"}
+          {saving ? t("erp.common.saving") : t("erp.payments.saveChannels")}
         </button>
       </ErpFormActions>
     </ErpPageShell>

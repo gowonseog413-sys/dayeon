@@ -7,6 +7,9 @@ export type ArticleCategory = {
   articleCount?: number;
 };
 
+import { translate, type Locale } from "@/i18n/messages";
+import { articleCategoryKey } from "@/i18n/article-content";
+
 export const DEFAULT_ARTICLE_CATEGORIES: ArticleCategory[] = [
   { id: "beauty-lifestyle", label: "뷰티 및 라이프스타일" },
   { id: "community", label: "커뮤니티" },
@@ -20,7 +23,10 @@ export const ARTICLE_CATEGORIES = DEFAULT_ARTICLE_CATEGORIES;
 export function getArticleCategoryLabel(
   categoryId: string,
   categories: ArticleCategory[] = DEFAULT_ARTICLE_CATEGORIES,
+  locale: Locale = "ko",
 ) {
+  const key = articleCategoryKey(categoryId);
+  if (key && locale !== "ko") return translate(locale, key);
   return categories.find((c) => c.id === categoryId)?.label ?? categoryId;
 }
 

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import {
   uploadErpImageFile,
   type ErpImageVariant,
@@ -67,9 +68,11 @@ async function resolveDroppedFile(dt: DataTransfer): Promise<File | null> {
 export function ErpImageUpload({
   value,
   onChange,
-  label = "이미지",
+  label,
   variant = "main",
 }: Props) {
+  const { t } = useI18n();
+  const displayLabel = label ?? t("erp.image.defaultLabel");
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [err, setErr] = useState("");
@@ -83,7 +86,7 @@ export function ErpImageUpload({
   const processFile = useCallback(
     async (file: File) => {
       if (!file.type.startsWith("image/")) {
-        setErr("이미지 파일만 선택할 수 있습니다.");
+        setErr(t("erp.image.imagesOnly"));
         return;
       }
       setErr("");
@@ -92,12 +95,12 @@ export function ErpImageUpload({
         const url = await uploadErpImageFile(file, variant);
         onChange(url);
       } catch (ex) {
-        setErr(ex instanceof Error ? ex.message : "업로드 실패");
+        setErr(ex instanceof Error ? ex.message : t("erp.image.uploadFailed"));
       } finally {
         setUploading(false);
       }
     },
-    [onChange, variant],
+    [onChange, variant, t],
   );
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -146,7 +149,7 @@ export function ErpImageUpload({
       await processFile(file);
       return;
     }
-    setErr("이미지를 놓을 수 없습니다. 파일이나 이미지를 다시 끌어다 놓아 주세요.");
+    setErr(t("erp.image.dropError"));
   }
 
   const previewClass = isMain
@@ -159,7 +162,7 @@ export function ErpImageUpload({
 
   return (
     <div className="space-y-2">
-      <p className={`font-medium text-gray-700 ${isMain ? "text-sm" : "text-xs"}`}>{label}</p>
+      <p className={`font-medium text-gray-700 ${isMain ? "text-sm" : "text-xs"}`}>{displayLabel}</p>
 
       <div
         ref={zoneRef}
@@ -178,19 +181,19 @@ export function ErpImageUpload({
             <Image src={value} alt="" fill className="object-cover" draggable={false} unoptimized />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-1 px-2 text-center text-xs text-gray-400">
-              <span>{uploading ? "업로드 중…" : "이미지를 끌어다 놓거나"}</span>
-              {!uploading && <span>파일을 선택하세요</span>}
+              <span>{uploading ? t("erp.image.uploading") : t("erp.image.dropHint1")}</span>
+              {!uploading && <span>{t("erp.image.dropHint2")}</span>}
             </div>
           )}
           {dragging && (
             <div className="absolute inset-0 flex items-center justify-center bg-pink-100/80 text-sm font-semibold text-[var(--pink-accent)]">
-              여기에 놓기
+              {t("erp.image.dropHere")}
             </div>
           )}
         </div>
 
         <label className="mt-2 block cursor-pointer">
-          <span className="sr-only">파일 선택</span>
+          <span className="sr-only">{t("erp.image.fileSelectSr")}</span>
           <input
             type="file"
             accept="image/*"
@@ -203,10 +206,10 @@ export function ErpImageUpload({
 
       <p className="text-[10px] text-gray-400">
         {isPartner
-          ? "정사각형 중앙 크롭 후 WebP로 저장됩니다."
+          ? t("erp.image.hintPartner")
           : isHero
-            ? "21:7 와이드 크롭 후 WebP로 저장됩니다."
-            : "업로드 시 WebP로 자동 변환·압축됩니다."}
+            ? t("erp.image.hintHero")
+            : t("erp.image.hintDefault")}
       </p>
       {err && <p className="text-xs text-red-600">{err}</p>}
     </div>

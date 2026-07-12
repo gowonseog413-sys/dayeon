@@ -2,11 +2,12 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpImageUpload } from "@/components/erp/ErpImageUpload";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import { findMainNode, findMidNode, useProductCatalog } from "@/lib/product-catalog-store";
 import { api, formatRp } from "@/lib/api";
 import {
@@ -21,6 +22,7 @@ import {
 import type { Product, ProductImage } from "@/lib/types";
 
 function ErpProductRegisterContent() {
+  const { t, tFmt } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editParam = searchParams.get("edit");
@@ -33,7 +35,7 @@ function ErpProductRegisterContent() {
   const { catalog } = useProductCatalog();
 
   function load() {
-    api<{ products: Product[] }>("/api/admin/products", { token: getToken() })
+    api<{ products: Product[] }>("/api/admin/products", { token: getErpToken() })
       .then((d) => setProducts(d.products))
       .catch(() => {});
   }
@@ -79,9 +81,11 @@ function ErpProductRegisterContent() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg("");
-    const token = getToken();
+    const token = getErpToken();
     const galleryImages: ProductImage[] = form.thumbImages
-      .map((url, i) => (url.trim() ? { url: url.trim(), alt: `썸네일 ${i + 2}` } : null))
+      .map((url, i) =>
+        url.trim() ? { url: url.trim(), alt: tFmt("erp.products.register.thumbAlt", { n: i + 2 }) } : null,
+      )
       .filter(Boolean) as ProductImage[];
 
     const { thumbImages: _t, ...rest } = form;
@@ -104,21 +108,24 @@ function ErpProductRegisterContent() {
           token,
           body: JSON.stringify(body),
         });
-        showSaveSuccess({ subMessage: "상품이 수정되었습니다." });
+        showSaveSuccess({ subMessage: t("erp.products.register.updatedMsg") });
       } else {
         await api("/api/admin/products", {
           method: "POST",
           token,
           body: JSON.stringify(body),
         });
-        showSaveSuccess({ message: "등록되었습니다", subMessage: "상품이 등록되었습니다." });
+        showSaveSuccess({
+          message: t("erp.common.registeredTitle"),
+          subMessage: t("erp.products.register.createdSubMsg"),
+        });
       }
       setForm(emptyProductForm);
       setEditingId(null);
       router.replace("/erp/products");
       load();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     }
   }
 
@@ -130,21 +137,21 @@ function ErpProductRegisterContent() {
 
   return (
     <ErpPageShell
-      title="상품 등록"
-      description="왼쪽: ① 메인 이미지 → ② 작은 썸네일 6장(드래그·WebP) / 오른쪽: 상품 정보 입력"
+      titleKey="erp.nav.productsRegister"
+      descriptionKey="erp.products.register.description"
     >
       <form onSubmit={save} className="mx-auto max-w-6xl rounded-xl border bg-white p-4">
         <p className="mb-3 text-sm font-medium text-[var(--pink-accent)]">
-          {editingId ? "상품 수정" : "새 상품 등록"}
+          {editingId ? t("erp.products.register.editHeading") : t("erp.products.register.newHeading")}
         </p>
         {errorMsg ? <p className="mb-3 text-sm text-red-600">{errorMsg}</p> : null}
 
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <div className="space-y-4 rounded-lg border border-pink-100 bg-pink-50/40 p-4 lg:sticky lg:top-4">
-            <p className="text-sm font-semibold text-gray-800">이미지 (위에서부터 순서대로)</p>
+            <p className="text-sm font-semibold text-gray-800">{t("erp.products.register.imagesTitle")}</p>
             <ErpImageUpload
               variant="main"
-              label="① 메인 이미지 — 쇼핑몰 카드·상세 큰 화면"
+              label={t("erp.products.register.mainImageLabel")}
               value={form.image}
               onChange={(url) => setForm({ ...form, image: url })}
             />
@@ -153,7 +160,7 @@ function ErpProductRegisterContent() {
                 <ErpImageUpload
                   key={i}
                   variant="thumb"
-                  label={`② 작은 이미지 ${i + 1}`}
+                  label={tFmt("erp.products.register.thumbImageLabel", { n: i + 1 })}
                   value={form.thumbImages[i] ?? ""}
                   onChange={(url) => {
                     const next = [...form.thumbImages];
@@ -168,25 +175,25 @@ function ErpProductRegisterContent() {
           <div className="space-y-5">
             <fieldset className="space-y-3">
               <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                기본 정보
+                {t("erp.products.register.basicInfo")}
               </legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                <ProductField label="브랜드*">
+                <ProductField label={t("erp.products.register.brand")}>
                   <input
                     required
                     value={form.brand}
                     onChange={(e) => setForm({ ...form, brand: e.target.value })}
                     className={productInputClass}
-                    placeholder="예: Bloominc"
+                    placeholder={t("erp.products.register.brandPlaceholder")}
                   />
                 </ProductField>
-                <ProductField label="상품명*">
+                <ProductField label={t("erp.products.register.name")}>
                   <input
                     required
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className={productInputClass}
-                    placeholder="상품명 입력"
+                    placeholder={t("erp.products.register.namePlaceholder")}
                   />
                 </ProductField>
               </div>
@@ -194,10 +201,10 @@ function ErpProductRegisterContent() {
 
             <fieldset className="space-y-3">
               <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                카테고리
+                {t("erp.products.register.category")}
               </legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                <ProductField label="대 카테고리" className="sm:col-span-2">
+                <ProductField label={t("erp.products.register.categoryMain")} className="sm:col-span-2">
                   <select
                     value={form.category}
                     onChange={(e) =>
@@ -213,7 +220,7 @@ function ErpProductRegisterContent() {
                   </select>
                 </ProductField>
                 {midOptions.length > 0 ? (
-                  <ProductField label="중 카테고리">
+                  <ProductField label={t("erp.products.register.categoryMid")}>
                     <select
                       value={form.categoryMid}
                       onChange={(e) =>
@@ -221,7 +228,7 @@ function ErpProductRegisterContent() {
                       }
                       className={productInputClass}
                     >
-                      <option value="">선택 안 함</option>
+                      <option value="">{t("erp.products.register.noSelection")}</option>
                       {midOptions.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.label}
@@ -231,7 +238,7 @@ function ErpProductRegisterContent() {
                   </ProductField>
                 ) : null}
                 <ProductField
-                  label="홈 섹션 (캐러셀 위치)"
+                  label={t("erp.products.register.homeSection")}
                   className={midOptions.length > 0 ? undefined : "sm:col-span-2"}
                 >
                   <select
@@ -246,13 +253,13 @@ function ErpProductRegisterContent() {
                     ))}
                   </select>
                 </ProductField>
-                <ProductField label="소 카테고리" className="sm:col-span-2">
+                <ProductField label={t("erp.products.register.categorySub")} className="sm:col-span-2">
                   <select
                     value={form.categorySub}
                     onChange={(e) => setForm({ ...form, categorySub: e.target.value })}
                     className={productInputClass}
                   >
-                    <option value="">선택 안 함</option>
+                    <option value="">{t("erp.products.register.noSelection")}</option>
                     {subOptions.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
@@ -265,10 +272,10 @@ function ErpProductRegisterContent() {
 
             <fieldset className="space-y-3">
               <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                가격 · 배송
+                {t("erp.products.register.priceShipping")}
               </legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                <ProductField label="판매금액 (청구서 · 실제 판매가)" className="sm:col-span-2">
+                <ProductField label={t("erp.products.register.salePrice")} className="sm:col-span-2">
                   <input
                     type="number"
                     min={0}
@@ -279,7 +286,7 @@ function ErpProductRegisterContent() {
                     className={productInputClass}
                   />
                 </ProductField>
-                <ProductField label="배송">
+                <ProductField label={t("erp.products.register.shipping")}>
                   <div className="flex min-h-[42px] flex-col justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2">
                     <label className="flex cursor-pointer items-center gap-2 text-sm">
                       <input
@@ -296,9 +303,9 @@ function ErpProductRegisterContent() {
                         }
                         className="h-4 w-4 rounded border-gray-300"
                       />
-                      <span className="text-gray-700">배송비 부과</span>
+                      <span className="text-gray-700">{t("erp.products.register.shippingFee")}</span>
                       {!form.shippingFeeCharged ? (
-                        <span className="text-xs text-green-600">무료배송</span>
+                        <span className="text-xs text-green-600">{t("erp.products.register.freeShipping")}</span>
                       ) : null}
                     </label>
                     {form.shippingFeeCharged ? (
@@ -314,12 +321,12 @@ function ErpProductRegisterContent() {
                           })
                         }
                         className={productInputClass}
-                        placeholder="배송비 금액 (Rp)"
+                        placeholder={t("erp.products.register.shippingFeePlaceholder")}
                       />
                     ) : null}
                   </div>
                 </ProductField>
-                <ProductField label="할인혜택 (%)">
+                <ProductField label={t("erp.products.register.discount")}>
                   <input
                     type="number"
                     min={0}
@@ -336,8 +343,10 @@ function ErpProductRegisterContent() {
                   />
                   {form.discountPercent > 0 ? (
                     <p className="mt-1 text-xs text-gray-500">
-                      추천 {formatRp(calcOriginalFromSale(form.priceSale, form.discountPercent))}
-                      {" → "}청구서 {formatRp(form.priceSale)}
+                      {tFmt("erp.products.register.discountHint", {
+                        original: formatRp(calcOriginalFromSale(form.priceSale, form.discountPercent)),
+                        sale: formatRp(form.priceSale),
+                      })}
                     </p>
                   ) : null}
                 </ProductField>
@@ -346,10 +355,10 @@ function ErpProductRegisterContent() {
 
             <fieldset className="space-y-3">
               <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                재고 · 적립
+                {t("erp.products.register.stockPoints")}
               </legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                <ProductField label="재고 수량 (고객 비공개)">
+                <ProductField label={t("erp.products.register.stock")}>
                   <input
                     type="number"
                     min={0}
@@ -361,7 +370,7 @@ function ErpProductRegisterContent() {
                     className={productInputClass}
                   />
                 </ProductField>
-                <ProductField label="포인트 적립">
+                <ProductField label={t("erp.products.register.points")}>
                   <label className="flex min-h-[42px] cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2 text-sm">
                     <input
                       type="checkbox"
@@ -370,9 +379,9 @@ function ErpProductRegisterContent() {
                       className="h-4 w-4"
                     />
                     <span className="text-gray-700">
-                      포인트 적립 사용
+                      {t("erp.products.register.pointsEnabled")}
                       <span className="mt-0.5 block text-[10px] font-normal text-gray-500">
-                        체크 시 구매자 등급별 적립률 적용
+                        {t("erp.products.register.pointsHint")}
                       </span>
                     </span>
                   </label>
@@ -382,29 +391,31 @@ function ErpProductRegisterContent() {
 
             <fieldset className="space-y-3">
               <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                표시 옵션
+                {t("erp.products.register.displayOptions")}
               </legend>
               <div className="grid gap-3 sm:grid-cols-2">
                 {form.discountPercent > 0 ? (
-                  <ProductField label="뱃지 (자동)">
+                  <ProductField label={t("erp.products.register.badgeAuto")}>
                     <div className="flex min-h-[42px] items-center rounded-lg border border-pink-100 bg-pink-50/50 px-3 text-sm">
                       <span className="font-semibold text-[var(--pink-accent)]">
                         {saleBadgeFromDiscount(form.discountPercent)}
                       </span>
-                      <span className="ml-2 text-xs text-gray-500">할인 %에 따라 자동 표기</span>
+                      <span className="ml-2 text-xs text-gray-500">
+                        {t("erp.products.register.badgeAutoHint")}
+                      </span>
                     </div>
                   </ProductField>
                 ) : (
-                  <ProductField label="뱃지 (NEW 등 · 비우면 없음)">
+                  <ProductField label={t("erp.products.register.badgeManual")}>
                     <input
                       value={form.badge}
                       onChange={(e) => setForm({ ...form, badge: e.target.value })}
                       className={productInputClass}
-                      placeholder="선택 입력"
+                      placeholder={t("erp.products.register.badgePlaceholder")}
                     />
                   </ProductField>
                 )}
-                <ProductField label="색상 스와치">
+                <ProductField label={t("erp.products.register.colorSwatch")}>
                   <div className="flex min-h-[42px] items-center gap-3 rounded-lg border border-gray-200 px-3">
                     <input
                       type="color"
@@ -418,28 +429,28 @@ function ErpProductRegisterContent() {
               </div>
             </fieldset>
 
-            <ProductField label="상품 설명 (상세 아코디언)">
+            <ProductField label={t("erp.products.register.detailDescription")}>
               <textarea
                 rows={4}
                 value={form.detailDescription}
                 onChange={(e) => setForm({ ...form, detailDescription: e.target.value })}
                 className={`${productInputClass} resize-y`}
-                placeholder="상세 페이지 아코디언에 표시될 설명"
+                placeholder={t("erp.products.register.detailPlaceholder")}
               />
             </ProductField>
 
             <ErpFormActions className="border-t border-gray-100 pt-4">
-          {editingId && (
-            <button type="button" className="rounded-full border px-5 py-2 text-sm" onClick={cancelEdit}>
-              취소
-            </button>
-          )}
-          <button
-            type="submit"
-            className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white"
-          >
-            {editingId ? "수정 저장" : "상품 등록"}
-          </button>
+              {editingId && (
+                <button type="button" className="rounded-full border px-5 py-2 text-sm" onClick={cancelEdit}>
+                  {t("erp.common.cancel")}
+                </button>
+              )}
+              <button
+                type="submit"
+                className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white"
+              >
+                {editingId ? t("erp.products.register.saveEdit") : t("erp.products.register.submit")}
+              </button>
             </ErpFormActions>
           </div>
         </div>
@@ -468,9 +479,18 @@ function ProductField({
   );
 }
 
+function ProductsLoadingFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.productsRegister">
+      <p className="text-sm text-gray-500">{t("erp.common.loading")}</p>
+    </ErpPageShell>
+  );
+}
+
 export default function ErpProductRegisterPage() {
   return (
-    <Suspense fallback={<ErpPageShell title="상품 등록">불러오는 중…</ErpPageShell>}>
+    <Suspense fallback={<ProductsLoadingFallback />}>
       <ErpProductRegisterContent />
     </Suspense>
   );

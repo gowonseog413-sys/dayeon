@@ -2,12 +2,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpContentTabs } from "@/components/erp/ErpContentTabs";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { api, formatRp } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 
 type ReferralSettings = {
   enabled: boolean;
@@ -34,13 +35,13 @@ type ReferralCodeRow = {
   referralCount: number;
 };
 
-const REFERRAL_TABS = [
-  { id: "settings", label: "추천인제도" },
-  { id: "referrals", label: "추천현황" },
-  { id: "codes", label: "회원별 추천코드" },
+const REFERRAL_TAB_KEYS = [
+  { id: "settings", labelKey: "erp.users.referral.tabSettings" },
+  { id: "referrals", labelKey: "erp.users.referral.tabReferrals" },
+  { id: "codes", labelKey: "erp.users.referral.tabCodes" },
 ] as const;
 
-type ReferralTabId = (typeof REFERRAL_TABS)[number]["id"];
+type ReferralTabId = (typeof REFERRAL_TAB_KEYS)[number]["id"];
 
 function isReferralTabId(value: string | null): value is ReferralTabId {
   return value === "settings" || value === "referrals" || value === "codes";
@@ -52,6 +53,7 @@ function formatDate(iso: string | null) {
 }
 
 function ErpUsersReferralContent() {
+  const { t, tFmt } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -70,6 +72,11 @@ function ErpUsersReferralContent() {
   const [errorMsg, setErrorMsg] = useState("");
   const { showSaveSuccess } = useErpSaveSuccess();
 
+  const referralTabs = REFERRAL_TAB_KEYS.map((tab) => ({
+    id: tab.id,
+    label: t(tab.labelKey),
+  }));
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -77,7 +84,7 @@ function ErpUsersReferralContent() {
         settings: ReferralSettings;
         referrals: ReferralRow[];
         codes: ReferralCodeRow[];
-      }>("/api/admin/settings/referral", { token: getToken() });
+      }>("/api/admin/settings/referral", { token: getErpToken() });
       setSettings(data.settings);
       setReferrals(data.referrals);
       setCodes(data.codes);
@@ -110,32 +117,34 @@ function ErpUsersReferralContent() {
         "/api/admin/settings/referral",
         {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify(settings),
         },
       );
       setSettings(data.settings);
       setReferrals(data.referrals);
-      showSaveSuccess({ subMessage: "추천인 제도 설정이 반영되었습니다." });
+      showSaveSuccess({ subMessage: t("erp.users.referral.settingsSaved") });
       load();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setSaving(false);
     }
   }
 
   if (loading) {
-    return <ErpPageShell title="추천인제도">불러오는 중…</ErpPageShell>;
+    return (
+      <ErpPageShell titleKey="erp.nav.usersReferral">{t("erp.common.loading")}</ErpPageShell>
+    );
   }
 
   return (
     <ErpPageShell
-      title="추천인제도"
-      description="추천 코드 가입 시 지급 포인트와 추천 현황을 관리합니다."
+      titleKey="erp.nav.usersReferral"
+      descriptionKey="erp.users.referral.description"
     >
       <ErpContentTabs
-        tabs={[...REFERRAL_TABS]}
+        tabs={referralTabs}
         active={activeTab}
         onChange={(id) => setTab(id as ReferralTabId)}
         className="mb-2"
@@ -146,19 +155,19 @@ function ErpUsersReferralContent() {
       {activeTab === "settings" ? (
         <form onSubmit={saveSettings} className="max-w-3xl rounded-xl border bg-white p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-gray-800">추천인 제도 설정</p>
+            <p className="text-sm font-semibold text-gray-800">{t("erp.users.referral.settingsTitle")}</p>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={settings.enabled}
                 onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
               />
-              제도 사용
+              {t("erp.users.referral.enabled")}
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm">
-              <span className="mb-1 block text-gray-600">추천인 적립 (P)</span>
+              <span className="mb-1 block text-gray-600">{t("erp.users.referral.referrerReward")}</span>
               <input
                 type="number"
                 min={0}
@@ -170,7 +179,7 @@ function ErpUsersReferralContent() {
               />
             </label>
             <label className="text-sm">
-              <span className="mb-1 block text-gray-600">피추천인 가입 적립 (P)</span>
+              <span className="mb-1 block text-gray-600">{t("erp.users.referral.refereeReward")}</span>
               <input
                 type="number"
                 min={0}
@@ -182,7 +191,7 @@ function ErpUsersReferralContent() {
               />
             </label>
             <label className="text-sm sm:col-span-2">
-              <span className="mb-1 block text-gray-600">안내 문구</span>
+              <span className="mb-1 block text-gray-600">{t("erp.users.referral.descriptionField")}</span>
               <textarea
                 rows={2}
                 value={settings.description}
@@ -192,8 +201,10 @@ function ErpUsersReferralContent() {
             </label>
           </div>
           <p className="mt-2 text-xs text-gray-500">
-            추천인 {formatRp(settings.referrerReward)} · 피추천인{" "}
-            {formatRp(settings.refereeReward)} (가입 시 자동 지급)
+            {tFmt("erp.users.referral.summary", {
+              referrer: formatRp(settings.referrerReward),
+              referee: formatRp(settings.refereeReward),
+            })}
           </p>
           <ErpFormActions className="mt-4">
             <button
@@ -201,7 +212,7 @@ function ErpUsersReferralContent() {
               disabled={saving}
               className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white disabled:opacity-50"
             >
-              {saving ? "저장 중…" : "설정 저장"}
+              {saving ? t("erp.common.saving") : t("erp.users.referral.saveSettings")}
             </button>
           </ErpFormActions>
         </form>
@@ -212,17 +223,17 @@ function ErpUsersReferralContent() {
           <table className="text-left text-xs">
             <thead className="border-b bg-gray-50 text-gray-500">
               <tr>
-                <th className="whitespace-nowrap px-2 py-1.5">가입일</th>
-                <th className="whitespace-nowrap px-2 py-1.5">피추천인</th>
-                <th className="whitespace-nowrap px-2 py-1.5">추천인</th>
-                <th className="whitespace-nowrap px-2 py-1.5">추천코드</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.referral.colReferredAt")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.referral.colReferee")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.referral.colReferrer")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.referral.colCode")}</th>
               </tr>
             </thead>
             <tbody>
               {referrals.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-2 py-4 text-center text-gray-400">
-                    아직 추천 가입 내역이 없습니다.
+                    {t("erp.users.referral.noReferrals")}
                   </td>
                 </tr>
               ) : (
@@ -255,17 +266,17 @@ function ErpUsersReferralContent() {
           <table className="text-left text-xs">
             <thead className="border-b bg-gray-50 text-gray-500">
               <tr>
-                <th className="whitespace-nowrap px-2 py-1.5">이름</th>
-                <th className="whitespace-nowrap px-2 py-1.5">메일</th>
-                <th className="whitespace-nowrap px-2 py-1.5">추천코드</th>
-                <th className="whitespace-nowrap px-2 py-1.5 text-right">추천 수</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.col.name")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.col.email")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.referral.colCode")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-right">{t("erp.users.referral.colReferralCount")}</th>
               </tr>
             </thead>
             <tbody>
               {codes.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-2 py-4 text-center text-gray-400">
-                    회원이 없습니다.
+                    {t("erp.users.referral.noCodes")}
                   </td>
                 </tr>
               ) : (
@@ -290,9 +301,16 @@ function ErpUsersReferralContent() {
   );
 }
 
+function ReferralLoadingFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.usersReferral">{t("erp.common.loading")}</ErpPageShell>
+  );
+}
+
 export default function ErpUsersReferralPage() {
   return (
-    <Suspense fallback={<ErpPageShell title="추천인제도">불러오는 중…</ErpPageShell>}>
+    <Suspense fallback={<ReferralLoadingFallback />}>
       <ErpUsersReferralContent />
     </Suspense>
   );

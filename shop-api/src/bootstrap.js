@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { readDb } from "./db.js";
+import { ensureDefaultUsers } from "./ensure-default-users.js";
 import { ensureSiteContent } from "./site-content.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,5 +21,6 @@ export async function bootstrapDb() {
     await import("./seed.js");
   }
   ensureSiteContent();
+  await ensureDefaultUsers();
   console.log("[bootstrap] DB 준비 완료");
 }

@@ -228,7 +228,7 @@ export function PartnerBannerRails() {
 
   useEffect(() => setMounted(true), []);
 
-  if (!mounted || pathname.startsWith("/erp") || !visible) return null;
+  if (!mounted || pathname.startsWith("/erp") || pathname.startsWith("/admin-gate") || !visible) return null;
 
   return createPortal(
     <div className="partner-banner-layer" aria-hidden={false}>

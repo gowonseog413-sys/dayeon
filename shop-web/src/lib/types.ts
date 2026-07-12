@@ -98,6 +98,7 @@ export type User = {
   addressSameAsShipping?: boolean;
   points?: number;
   tier?: "bronze" | "silver" | "gold" | "diamond" | string;
+  profileComplete?: boolean;
 };
 
 export type AdminMember = {
@@ -107,6 +108,7 @@ export type AdminMember = {
   lastName: string;
   name: string;
   phone: string;
+  birthDate?: string | null;
   address: string;
   role: "admin" | "customer";
   authProvider?: string;

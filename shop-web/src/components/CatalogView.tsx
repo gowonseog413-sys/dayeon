@@ -7,7 +7,7 @@ import { ErpPagination } from "@/components/erp/ErpPagination";
 import { ProductCard } from "@/components/ProductCard";
 import { useI18n } from "@/components/I18nProvider";
 import { catalogTitleText } from "@/lib/catalog-title-key";
-import { useShopCatalog } from "@/lib/use-shop-catalog";
+import { useLocalizedShopCatalog } from "@/lib/use-shop-catalog";
 import {
   filterProducts,
   parseCatalogFilters,
@@ -24,7 +24,7 @@ export function CatalogView({ products }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t, tFmt } = useI18n();
-  const { catalog } = useShopCatalog();
+  const { catalog } = useLocalizedShopCatalog();
   const filters = parseCatalogFilters(searchParams);
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
 
@@ -63,9 +63,9 @@ export function CatalogView({ products }: Props) {
     Boolean(filters.look);
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 lg:flex-row">
-      <CatalogFilters products={products} filters={filters} />
-      <div className="min-w-0 flex-1">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 lg:flex-row lg:gap-8 lg:py-10">
+      <CatalogFilters products={products} filters={filters} className="order-2 lg:order-1" />
+      <div className="order-1 min-w-0 flex-1 lg:order-2">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--pink-deep)]">
             <span className="text-[var(--pink-accent)]" aria-hidden>

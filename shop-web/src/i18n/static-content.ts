@@ -1,19 +1,29 @@
 import type { Locale } from "./messages";
 
+type SectionIn = { heading: string; paragraphs: readonly string[] };
 type Section = { heading: string; paragraphs: string[] };
-type Page = { title: string; sections: Section[] };
+type Page = { title: string; sections: Section[]; email?: string };
 
 export type StaticPageKey = keyof typeof PAGES;
+export type StaticSupportKey = keyof typeof SUPPORT_PAGES;
 
-export function getStaticPage(page: StaticPageKey, locale: Locale): Page {
-  const p = PAGES[page][locale];
+function clonePage(p: { title: string; sections: readonly SectionIn[]; email?: string }): Page {
   return {
     title: p.title,
+    email: p.email,
     sections: p.sections.map((s) => ({
       heading: s.heading,
       paragraphs: [...s.paragraphs],
     })),
   };
+}
+
+export function getStaticPage(page: StaticPageKey, locale: Locale): Page {
+  return clonePage(PAGES[page][locale]);
+}
+
+export function getStaticSupport(page: StaticSupportKey, locale: Locale): Page {
+  return clonePage(SUPPORT_PAGES[page][locale]);
 }
 
 const PAGES = {
@@ -250,6 +260,213 @@ const PAGES = {
         {
           heading: "Cara menggunakan",
           paragraphs: ["100 koin = Rp 10.000", "Maks 1.000 koin per pesanan"],
+        },
+      ],
+    },
+  },
+} as const;
+
+const SUPPORT_PAGES = {
+  faq: {
+    ko: {
+      title: "자주 묻는 질문 (FAQ)",
+      sections: [
+        {
+          heading: "렌즈 착용 팁",
+          paragraphs: [
+            "손을 깨끗이 씻은 뒤 렌즈를 착용하세요.",
+            "하루 착용 시간을 지키고, 불편하면 즉시 착용을 중단하세요.",
+          ],
+        },
+        {
+          heading: "솔루션 사용",
+          paragraphs: ["다목적 솔루션으로 충분히 세척·보관하세요.", "개봉 후 사용 기한을 확인하세요."],
+        },
+      ],
+    },
+    en: {
+      title: "FAQ",
+      sections: [
+        {
+          heading: "Lens wearing tips",
+          paragraphs: [
+            "Wash your hands before handling lenses.",
+            "Follow daily wear time limits and stop if you feel discomfort.",
+          ],
+        },
+        {
+          heading: "Using solution",
+          paragraphs: [
+            "Clean and store lenses with multipurpose solution.",
+            "Check the expiry date after opening.",
+          ],
+        },
+      ],
+    },
+    id: {
+      title: "FAQ",
+      sections: [
+        {
+          heading: "Tips pemakaian lensa",
+          paragraphs: [
+            "Cuci tangan sebelum memasang lensa.",
+            "Patuhi batas waktu pemakaian harian; hentikan jika tidak nyaman.",
+          ],
+        },
+        {
+          heading: "Penggunaan cairan",
+          paragraphs: [
+            "Bersihkan dan simpan lensa dengan cairan multipurpose.",
+            "Periksa tanggal kedaluwarsa setelah dibuka.",
+          ],
+        },
+      ],
+    },
+  },
+  shipping: {
+    ko: {
+      title: "배송 정보",
+      sections: [
+        {
+          heading: "배송 업체",
+          paragraphs: ["Sicepat · JNE · Anter Aja · JNT"],
+        },
+        {
+          heading: "배송 기간",
+          paragraphs: [
+            "자카르타 권역: 영업일 기준 2–5일",
+            "기타 지역: 3–7일 (지역에 따라 상이)",
+          ],
+        },
+      ],
+    },
+    en: {
+      title: "Shipping Info",
+      sections: [
+        {
+          heading: "Carriers",
+          paragraphs: ["Sicepat · JNE · Anter Aja · JNT"],
+        },
+        {
+          heading: "Delivery time",
+          paragraphs: [
+            "Jakarta area: 2–5 business days",
+            "Other regions: 3–7 days (varies by location)",
+          ],
+        },
+      ],
+    },
+    id: {
+      title: "Info Pengiriman",
+      sections: [
+        {
+          heading: "Kurir",
+          paragraphs: ["Sicepat · JNE · Anter Aja · JNT"],
+        },
+        {
+          heading: "Estimasi waktu",
+          paragraphs: [
+            "Area Jakarta: 2–5 hari kerja",
+            "Wilayah lain: 3–7 hari (tergantung lokasi)",
+          ],
+        },
+      ],
+    },
+  },
+  returns: {
+    ko: {
+      title: "교환/반품 안내",
+      sections: [
+        {
+          heading: "교환·환불 안내",
+          paragraphs: [
+            "미개봉 제품에 한해 수령 후 7일 이내 교환·환불이 가능합니다.",
+            "개봉된 렌즈·솔루션은 위생상 교환·환불이 불가합니다.",
+          ],
+        },
+        {
+          heading: "제조 결함",
+          paragraphs: ["제조 결함이 확인되면 개봉 영상과 함께 고객센터로 문의해 주세요."],
+        },
+      ],
+    },
+    en: {
+      title: "Returns & Exchanges",
+      sections: [
+        {
+          heading: "Exchange & refund",
+          paragraphs: [
+            "Unopened items may be exchanged or refunded within 7 days of delivery.",
+            "Opened lenses and solutions cannot be returned for hygiene reasons.",
+          ],
+        },
+        {
+          heading: "Manufacturing defects",
+          paragraphs: [
+            "If a defect is confirmed, contact customer service with an unboxing video.",
+          ],
+        },
+      ],
+    },
+    id: {
+      title: "Tukar & Retur",
+      sections: [
+        {
+          heading: "Penukaran & refund",
+          paragraphs: [
+            "Produk belum dibuka dapat ditukar/direfund dalam 7 hari setelah diterima.",
+            "Lensa/cairan yang sudah dibuka tidak dapat ditukar karena alasan higienis.",
+          ],
+        },
+        {
+          heading: "Cacat produksi",
+          paragraphs: [
+            "Jika cacat produksi terkonfirmasi, hubungi CS dengan video unboxing.",
+          ],
+        },
+      ],
+    },
+  },
+  contact: {
+    ko: {
+      title: "1:1 문의하기",
+      email: "help@dayeon.shop",
+      sections: [
+        {
+          heading: "고객센터",
+          paragraphs: [
+            "이메일: help@dayeon.shop",
+            "운영 시간: 평일 09:00–18:00 (WIB)",
+            "주말·공휴일 문의는 순차적으로 답변드립니다.",
+          ],
+        },
+      ],
+    },
+    en: {
+      title: "Contact Us",
+      email: "help@dayeon.shop",
+      sections: [
+        {
+          heading: "Customer service",
+          paragraphs: [
+            "Email: help@dayeon.shop",
+            "Hours: Mon–Fri 09:00–18:00 (WIB)",
+            "Weekend and holiday inquiries are answered in order.",
+          ],
+        },
+      ],
+    },
+    id: {
+      title: "Hubungi Kami",
+      email: "help@dayeon.shop",
+      sections: [
+        {
+          heading: "Layanan pelanggan",
+          paragraphs: [
+            "Email: help@dayeon.shop",
+            "Jam operasional: Sen–Jum 09:00–18:00 (WIB)",
+            "Pertanyaan akhir pekan/libur dijawab secara berurutan.",
+          ],
         },
       ],
     },

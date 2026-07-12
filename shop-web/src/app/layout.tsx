@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { getSiteOrigin } from "@/lib/site-url";
 import { DocumentTitle } from "@/components/DocumentTitle";
 import { EventPopupLayer } from "@/components/EventPopupLayer";
 import { PartnerBannerRails } from "@/components/PartnerBannerRails";
@@ -9,6 +10,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteOrigin()),
   title: "dayeon — 쇼핑몰",
   description: "dayeon 컬러렌즈 · 렌즈 케어 쇼핑몰",
 };

@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import { productImageFallback } from "@/lib/product-image-fallback";
 import type { Product, ProductReview } from "@/lib/types";
 
@@ -39,21 +40,31 @@ function toDatetimeLocal(iso: string) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function StarsInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function StarsInput({
+  value,
+  onChange,
+  t,
+  tFmt,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  t: (key: string) => string;
+  tFmt: (key: string, vars: Record<string, string | number>) => string;
+}) {
   return (
-    <div className="flex items-center gap-1" role="group" aria-label="별점">
+    <div className="flex items-center gap-1" role="group" aria-label={t("erp.users.reviewWork.ratingAria")}>
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
           type="button"
           onClick={() => onChange(n)}
           className={`text-xl transition ${n <= value ? "text-amber-500" : "text-gray-300 hover:text-amber-300"}`}
-          aria-label={`${n}점`}
+          aria-label={tFmt("erp.users.reviewWork.ratingPoints", { n })}
         >
           ★
         </button>
       ))}
-      <span className="ml-2 text-sm text-gray-600">{value}점</span>
+      <span className="ml-2 text-sm text-gray-600">{tFmt("erp.users.reviewWork.ratingPoints", { n: value })}</span>
     </div>
   );
 }
@@ -74,6 +85,7 @@ type Props = {
 };
 
 export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
+  const { t, tFmt } = useI18n();
   const { showSaveSuccess } = useErpSaveSuccess();
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<AdminReview[]>([]);
@@ -87,8 +99,8 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
     setLoading(true);
     try {
       const [productData, reviewData] = await Promise.all([
-        api<{ products: Product[] }>("/api/admin/products", { token: getToken() }),
-        api<{ reviews: AdminReview[] }>("/api/admin/reviews?scope=managed", { token: getToken() }),
+        api<{ products: Product[] }>("/api/admin/products", { token: getErpToken() }),
+        api<{ reviews: AdminReview[] }>("/api/admin/reviews?scope=managed", { token: getErpToken() }),
       ]);
       setProducts(productData.products);
       setReviews(reviewData.reviews);
@@ -134,11 +146,11 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
   async function submitForm(e: React.FormEvent) {
     e.preventDefault();
     if (!form.productId) {
-      onError("상품을 선택해 주세요.");
+      onError(t("erp.users.reviewWork.errorSelectProduct"));
       return;
     }
     if (!form.content.trim()) {
-      onError("리뷰 내용을 입력해 주세요.");
+      onError(t("erp.users.reviewWork.errorContent"));
       return;
     }
 
@@ -146,7 +158,7 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
     onError("");
     const payload = {
       productId: form.productId,
-      userName: form.userName.trim() || "고객",
+      userName: form.userName.trim() || t("erp.users.reviewWork.defaultAuthor"),
       userEmail: form.userEmail.trim(),
       rating: form.rating,
       content: form.content.trim(),
@@ -157,56 +169,62 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
       if (editingId) {
         await api(`/api/admin/reviews/${editingId}/managed`, {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify(payload),
         });
-        showSaveSuccess({ message: "수정되었습니다", subMessage: "관리자 리뷰가 쇼핑몰에 반영됩니다." });
+        showSaveSuccess({
+          message: t("erp.common.updatedTitle"),
+          subMessage: t("erp.users.reviewWork.updatedMsg"),
+        });
       } else {
         await api("/api/admin/reviews/managed", {
           method: "POST",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify(payload),
         });
-        showSaveSuccess({ message: "등록되었습니다", subMessage: "관리자 리뷰가 상품 페이지에 표시됩니다." });
+        showSaveSuccess({
+          message: t("erp.common.registeredTitle"),
+          subMessage: t("erp.users.reviewWork.registeredMsg"),
+        });
       }
       resetForm();
       await load();
       onPageChange(1);
     } catch (err) {
-      onError(err instanceof Error ? err.message : "저장 실패");
+      onError(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setSaving(false);
     }
   }
 
   async function removeReview(id: string) {
-    if (!confirm("이 관리자 리뷰를 삭제할까요?")) return;
+    if (!confirm(t("erp.users.reviewWork.confirmDelete"))) return;
     setDeletingId(id);
     onError("");
     try {
-      await api(`/api/admin/reviews/${id}`, { method: "DELETE", token: getToken() });
+      await api(`/api/admin/reviews/${id}`, { method: "DELETE", token: getErpToken() });
       if (editingId === id) resetForm();
-      showSaveSuccess({ message: "삭제되었습니다", subMessage: "리뷰가 제거되었습니다." });
+      showSaveSuccess({
+        message: t("erp.common.deletedTitle"),
+        subMessage: t("erp.users.reviewWork.deletedMsg"),
+      });
       await load();
     } catch (err) {
-      onError(err instanceof Error ? err.message : "삭제 실패");
+      onError(err instanceof Error ? err.message : t("erp.common.deleteFailed"));
     } finally {
       setDeletingId(null);
     }
   }
 
   if (loading) {
-    return <p className="text-sm text-gray-500">불러오는 중…</p>;
+    return <p className="text-sm text-gray-500">{t("erp.common.loading")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-950">
-        <p className="font-medium">관리자 리뷰 작업</p>
-        <p className="mt-1 text-xs leading-relaxed text-amber-900/80">
-          회원 주문과 무관하게 리뷰를 등록·수정할 수 있습니다. 포인트는 지급되지 않으며, 상품 상세
-          페이지에 일반 리뷰와 동일하게 노출됩니다.
-        </p>
+        <p className="font-medium">{t("erp.users.reviewWork.title")}</p>
+        <p className="mt-1 text-xs leading-relaxed text-amber-900/80">{t("erp.users.reviewWork.desc")}</p>
       </div>
 
       <form
@@ -215,7 +233,7 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
           <h3 className="text-sm font-semibold text-gray-900">
-            {editingId ? "리뷰 수정" : "새 리뷰 등록"}
+            {editingId ? t("erp.users.reviewWork.editTitle") : t("erp.users.reviewWork.newTitle")}
           </h3>
           {editingId ? (
             <button
@@ -223,21 +241,21 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
               onClick={resetForm}
               className="text-xs text-gray-500 hover:text-gray-800"
             >
-              수정 취소
+              {t("erp.users.reviewWork.cancelEdit")}
             </button>
           ) : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm md:col-span-2">
-            <span className="mb-1 block font-medium text-gray-700">상품 *</span>
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.users.reviewWork.product")}</span>
             <select
               required
               value={form.productId}
               onChange={(e) => setForm({ ...form, productId: e.target.value })}
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
             >
-              <option value="">상품을 선택하세요</option>
+              <option value="">{t("erp.users.reviewWork.selectProduct")}</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.brand} {p.name}
@@ -247,51 +265,56 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
           </label>
 
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-gray-700">작성자 이름</span>
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.users.reviewWork.authorName")}</span>
             <input
               type="text"
               value={form.userName}
               onChange={(e) => setForm({ ...form, userName: e.target.value })}
-              placeholder="예: 김다연"
+              placeholder={t("erp.users.reviewWork.authorPlaceholder")}
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
             />
           </label>
 
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-gray-700">이메일 (선택)</span>
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.users.reviewWork.emailOptional")}</span>
             <input
               type="email"
               value={form.userEmail}
               onChange={(e) => setForm({ ...form, userEmail: e.target.value })}
-              placeholder="표시용 · 실제 회원과 연결되지 않음"
+              placeholder={t("erp.users.reviewWork.emailHint")}
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
             />
           </label>
 
           <div className="block text-sm">
-            <span className="mb-1 block font-medium text-gray-700">별점 *</span>
-            <StarsInput value={form.rating} onChange={(rating) => setForm({ ...form, rating })} />
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.users.reviewWork.rating")}</span>
+            <StarsInput
+              value={form.rating}
+              onChange={(rating) => setForm({ ...form, rating })}
+              t={t}
+              tFmt={tFmt}
+            />
           </div>
 
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-gray-700">등록일 (선택)</span>
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.users.reviewWork.createdAt")}</span>
             <input
               type="datetime-local"
               value={form.createdAt}
               onChange={(e) => setForm({ ...form, createdAt: e.target.value })}
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
             />
-            <span className="mt-1 block text-xs text-gray-400">비우면 저장 시점으로 등록됩니다.</span>
+            <span className="mt-1 block text-xs text-gray-400">{t("erp.users.reviewWork.createdAtHint")}</span>
           </label>
 
           <label className="block text-sm md:col-span-2">
-            <span className="mb-1 block font-medium text-gray-700">리뷰 내용 *</span>
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.users.reviewWork.content")}</span>
             <textarea
               required
               rows={4}
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="상품 리뷰 문구를 입력하세요."
+              placeholder={t("erp.users.reviewWork.contentPlaceholder")}
               className="w-full resize-y rounded-lg border border-gray-300 px-3 py-2.5 text-sm leading-relaxed"
             />
           </label>
@@ -303,19 +326,23 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
             disabled={saving}
             className="rounded-lg bg-[#1e293b] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
           >
-            {saving ? "저장 중…" : editingId ? "수정 저장" : "리뷰 등록"}
+            {saving
+              ? t("erp.common.saving")
+              : editingId
+                ? t("erp.users.points.saveChanges")
+                : t("erp.users.reviewWork.submitNew")}
           </button>
         </ErpFormActions>
       </form>
 
       <div>
         <p className="mb-3 text-xs text-gray-500">
-          관리자 리뷰 {total}건 · 등록일 역순 · {WORK_PAGE_SIZE}건씩
+          {tFmt("erp.users.reviewWork.summary", { total, pageSize: WORK_PAGE_SIZE })}
         </p>
 
         {pageReviews.length === 0 ? (
           <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-gray-500">
-            등록된 관리자 리뷰가 없습니다.
+            {t("erp.users.reviewWork.noReviews")}
           </p>
         ) : (
           <>
@@ -333,7 +360,7 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-xs text-gray-400">No. {no}</p>
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-                          관리자 작성
+                          {t("erp.users.reviewWork.adminBadge")}
                         </span>
                       </div>
                       <div className="text-right">
@@ -346,7 +373,7 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
                             onClick={() => startEdit(r)}
                             className="text-xs text-gray-600 hover:underline"
                           >
-                            수정
+                            {t("erp.common.edit")}
                           </button>
                           <button
                             type="button"
@@ -354,7 +381,7 @@ export function ErpReviewWorkPanel({ page, onPageChange, onError }: Props) {
                             onClick={() => removeReview(r.id)}
                             className="text-xs text-red-500 hover:underline disabled:opacity-50"
                           >
-                            {deletingId === r.id ? "삭제 중…" : "삭제"}
+                            {deletingId === r.id ? t("erp.common.deleting") : t("erp.common.delete")}
                           </button>
                         </div>
                       </div>

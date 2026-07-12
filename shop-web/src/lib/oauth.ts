@@ -2,9 +2,19 @@ import { getApiBase } from "@/lib/api";
 
 const API = getApiBase();
 
-export function googleLoginUrl(nextPath = "/") {
+function sanitizeShopNextPath(nextPath: string) {
   const next = nextPath.startsWith("/") ? nextPath : `/${nextPath}`;
-  return `${API}/api/auth/google?next=${encodeURIComponent(next)}`;
+  if (next.startsWith("/erp") || next.startsWith("/admin-gate")) return "/";
+  return next;
+}
+
+export function googleLoginUrl(nextPath = "/") {
+  const next = sanitizeShopNextPath(nextPath);
+  const params = new URLSearchParams({ next });
+  if (typeof window !== "undefined") {
+    params.set("origin", window.location.origin);
+  }
+  return `${API}/api/auth/google?${params}`;
 }
 
 export const OAUTH_ERRORS: Record<string, string> = {

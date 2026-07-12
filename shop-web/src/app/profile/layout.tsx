@@ -6,14 +6,18 @@ import { ProfileSidebar } from "@/components/ProfileSidebar";
 import { UserMailboxModal } from "@/components/UserMailboxModal";
 import { api } from "@/lib/api";
 import { clearSession, getToken } from "@/lib/auth-store";
+import { clearCart } from "@/lib/cart-store";
 import { subscribeMessagesUpdates } from "@/lib/message-sync";
 import { useAuth } from "@/hooks/useAuth";
 import { TierBadge } from "@/components/TierBadge";
+import { isProfileComplete } from "@/lib/profile-complete";
+import { useI18n } from "@/components/I18nProvider";
 import { honorificName, userPoints, userTierId } from "@/lib/user-display";
 
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, ready } = useAuth();
+  const { t, locale } = useI18n();
   const [mailboxOpen, setMailboxOpen] = useState(false);
   const [unread, setUnread] = useState(0);
 
@@ -31,6 +35,10 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (ready && !user) {
       router.replace("/login?next=" + encodeURIComponent(window.location.pathname));
+      return;
+    }
+    if (ready && user && !isProfileComplete(user)) {
+      router.replace("/register/complete");
     }
   }, [ready, user, router]);
 
@@ -59,12 +67,12 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
   }, [user, refreshUnread]);
 
   if (!ready) {
-    return <p className="py-20 text-center text-sm text-gray-500">로딩 중...</p>;
+    return <p className="py-20 text-center text-sm text-gray-500">{t("common.loading")}</p>;
   }
 
   if (!user) return null;
 
-  const name = honorificName(user);
+  const name = honorificName(user, locale);
   const tierId = userTierId(user);
   const points = userPoints(user);
 
@@ -75,15 +83,16 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[var(--pink-border)] bg-[var(--pink-bg-soft)] px-4 py-3 shadow-[0_4px_18px_var(--pink-shadow)]">
           <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-[var(--pink-deep)]">
             <span>
-              {name}은 현재 <TierBadge tier={tierId} size="sm" /> 등급
+              {name} {t("profile.statusIs")} <TierBadge tier={tierId} size="sm" />{" "}
+              {t("profile.statusGrade")}
             </span>
-            <span className="font-semibold">{points.toLocaleString("ko-KR")}</span>
-            <span>포인트 입니다.</span>
+            <span className="font-semibold">{points.toLocaleString(locale === "id" ? "id-ID" : locale === "en" ? "en-US" : "ko-KR")}</span>
+            <span>{t("profile.statusPoints")}</span>
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              title="편지함 — 1:1 문의 답변"
+              title={t("profile.inboxTitle")}
               className={`relative flex items-center gap-1.5 rounded-full border-2 border-[var(--pink-border)] bg-white px-3 py-1.5 text-sm text-gray-600 transition hover:border-[var(--pink-accent)] hover:text-[var(--pink-accent)] ${
                 unread > 0 ? "mailbox-btn--unread text-[var(--pink-deep)]" : ""
               }`}
@@ -105,7 +114,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
               <span className="mailbox-icon" aria-hidden>
                 ✉️
               </span>
-              <span className="hidden sm:inline">편지함</span>
+              <span className="hidden sm:inline">{t("profile.inbox")}</span>
               {unread > 0 ? (
                 <span className="absolute -right-1 -top-1 flex h-4 min-w-4 animate-pulse items-center justify-center rounded-full bg-[var(--pink-accent)] px-1 text-[9px] font-bold text-white shadow-[0_0_8px_rgba(233,30,140,0.6)]">
                   {unread > 9 ? "9+" : unread}
@@ -117,10 +126,11 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
               className="rounded-full border-2 border-[var(--pink-border)] bg-white px-4 py-1.5 text-sm text-gray-600 transition hover:border-[var(--pink-accent)] hover:text-[var(--pink-accent)]"
               onClick={() => {
                 clearSession();
+                clearCart();
                 router.push("/login");
               }}
             >
-              로그아웃
+              {t("profile.logout")}
             </button>
           </div>
         </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import {
   CHANNEL_TYPE_LABEL,
   profileSummary,
@@ -16,12 +17,14 @@ type AdminProfileRow = PaymentProfile & {
 };
 
 export default function ErpPaymentProfilesPage() {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "id" ? "id-ID" : locale === "en" ? "en-US" : "ko-KR";
   const [profiles, setProfiles] = useState<AdminProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api<{ profiles: AdminProfileRow[] }>("/api/admin/payments/profiles", {
-      token: getToken(),
+      token: getErpToken(),
     })
       .then((d) => setProfiles(d.profiles))
       .catch(() => setProfiles([]))
@@ -29,26 +32,23 @@ export default function ErpPaymentProfilesPage() {
   }, []);
 
   return (
-    <ErpPageShell
-      title="회원 결제수단"
-      description="고객이 마이페이지에 등록한 결제수단 목록입니다. (카드 전체 번호는 저장하지 않습니다)"
-    >
+    <ErpPageShell titleKey="erp.nav.paymentsProfiles" descriptionKey="erp.payments.profilesDesc">
       {loading ? (
-        <p className="text-sm text-gray-400">불러오는 중…</p>
+        <p className="text-sm text-gray-400">{t("erp.common.loading")}</p>
       ) : profiles.length === 0 ? (
-        <p className="text-sm text-gray-400">등록된 회원 결제수단이 없습니다.</p>
+        <p className="text-sm text-gray-400">{t("erp.payments.noProfiles")}</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="w-full min-w-[48rem] text-left text-sm">
             <thead className="border-b bg-gray-50 text-gray-500">
               <tr>
-                <th className="px-2 py-1.5">회원</th>
-                <th className="px-2 py-1.5">메일</th>
-                <th className="px-2 py-1.5">유형</th>
-                <th className="px-2 py-1.5">표시명</th>
-                <th className="px-2 py-1.5">상세</th>
-                <th className="px-2 py-1.5 text-center">기본</th>
-                <th className="px-2 py-1.5">수정일</th>
+                <th className="px-2 py-1.5">{t("erp.payments.colMember")}</th>
+                <th className="px-2 py-1.5">{t("erp.payments.colEmail")}</th>
+                <th className="px-2 py-1.5">{t("erp.payments.colType")}</th>
+                <th className="px-2 py-1.5">{t("erp.payments.colLabel")}</th>
+                <th className="px-2 py-1.5">{t("erp.payments.colDetail")}</th>
+                <th className="px-2 py-1.5 text-center">{t("erp.payments.colDefault")}</th>
+                <th className="px-2 py-1.5">{t("erp.payments.colUpdated")}</th>
               </tr>
             </thead>
             <tbody>
@@ -61,7 +61,7 @@ export default function ErpPaymentProfilesPage() {
                   <td className="px-2 py-1.5 text-gray-600">{profileSummary(p)}</td>
                   <td className="px-2 py-1.5 text-center">{p.isDefault ? "✓" : "-"}</td>
                   <td className="px-2 py-1.5 text-gray-500">
-                    {new Date(p.updatedAt).toLocaleString("ko-KR")}
+                    {new Date(p.updatedAt).toLocaleString(dateLocale)}
                   </td>
                 </tr>
               ))}

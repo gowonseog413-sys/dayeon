@@ -1,4 +1,5 @@
 import { readDb, updateDb } from "./db.js";
+import { normalizeCmsPagesMap } from "./cms-locales.js";
 import { DEFAULT_LEGAL } from "./default-legal-content.js";
 import { DEFAULT_SITE_CONTENT } from "./default-site-content.js";
 
@@ -18,12 +19,19 @@ function withLegalDefaults(content) {
   return merged;
 }
 
+function withNormalizedCms(content) {
+  const merged = withLegalDefaults(structuredClone(content));
+  if (merged.pages) merged.pages = normalizeCmsPagesMap(merged.pages);
+  if (merged.support) merged.support = normalizeCmsPagesMap(merged.support);
+  return merged;
+}
+
 export function getSiteContent() {
   const db = readDb();
   if (!db.siteContent?.pages) {
-    return withLegalDefaults(structuredClone(DEFAULT_SITE_CONTENT));
+    return withNormalizedCms(structuredClone(DEFAULT_SITE_CONTENT));
   }
-  return withLegalDefaults(db.siteContent);
+  return withNormalizedCms(db.siteContent);
 }
 
 export function ensureSiteContent() {

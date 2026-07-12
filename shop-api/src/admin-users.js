@@ -40,6 +40,7 @@ export function buildAdminMemberRows(db) {
         lastName: u.lastName,
         name: memberName(u),
         phone: u.phone || "",
+        birthDate: u.birthDate || null,
         address: u.address || "",
         role: u.role,
         authProvider: u.authProvider || "local",

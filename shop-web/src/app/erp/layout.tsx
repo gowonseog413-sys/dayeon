@@ -2,25 +2,34 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpShell } from "@/components/erp/ErpShell";
-import { getStoredUser } from "@/lib/auth-store";
+import {
+  getErpStoredUser,
+  getErpToken,
+  hasErpPortalAccess,
+  migrateLegacyErpShopSession,
+} from "@/lib/auth-store";
 
 export default function ErpLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [denied, setDenied] = useState(false);
 
   useEffect(() => {
-    const u = getStoredUser();
-    if (!u || u.role !== "admin") {
+    migrateLegacyErpShopSession();
+    const u = getErpStoredUser();
+    const token = getErpToken();
+    if (!u || !token || u.role !== "admin" || !hasErpPortalAccess()) {
       setDenied(true);
-      router.replace("/login");
+      router.replace("/admin-gate");
     }
   }, [router]);
 
   if (denied) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f7f5f2] text-sm text-gray-500">
-        ERP 권한 확인 중...
+        {t("erp.layout.verifyingAccess")}
       </div>
     );
   }

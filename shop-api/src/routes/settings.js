@@ -67,4 +67,17 @@ router.get("/member-tiers", (_req, res) => {
   });
 });
 
+router.get("/referral", (_req, res) => {
+  const db = readDb();
+  ensureMemberSettings(db);
+  const referral = db.settings.referral;
+  const refereeReward = Math.max(0, Math.floor(Number(referral.refereeReward) || 0));
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.json({
+    enabled: Boolean(referral.enabled),
+    refereeReward,
+    referrerReward: Math.max(0, Math.floor(Number(referral.referrerReward) || 0)),
+  });
+});
+
 export default router;

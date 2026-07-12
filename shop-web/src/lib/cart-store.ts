@@ -27,6 +27,7 @@ function normalizeItem(raw: Partial<CartItem>): CartItem | null {
 
 export function getCart(): CartItem[] {
   if (typeof window === "undefined") return [];
+  if (!getToken()) return [];
   try {
     const parsed = JSON.parse(localStorage.getItem(CART_KEY) || "[]") as Partial<CartItem>[];
     return parsed
@@ -71,6 +72,7 @@ export function saveCart(items: CartItem[], options?: { skipSync?: boolean }) {
 }
 
 export function addToCart(productId: string, qty = 1) {
+  if (!getToken()) return false;
   const cart = getCart();
   cart.unshift({
     id: newCartId(),
@@ -79,6 +81,7 @@ export function addToCart(productId: string, qty = 1) {
     savedAt: new Date().toISOString(),
   });
   saveCart(cart);
+  return true;
 }
 
 export function removeFromCart(entryId: string) {
@@ -88,6 +91,12 @@ export function removeFromCart(entryId: string) {
 /** 장바구니에 담긴 상품 종류 수 (수량 합이 아님) */
 export function cartCount() {
   return getCart().length;
+}
+
+export function clearCart() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(CART_KEY);
+  window.dispatchEvent(new Event("cart-updated"));
 }
 
 /** 로그인 후 로컬·서버 장바구니 병합 */

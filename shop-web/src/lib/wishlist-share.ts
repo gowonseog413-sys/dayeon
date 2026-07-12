@@ -1,9 +1,10 @@
 import { formatRp } from "@/lib/api";
+import { getPublicSiteOrigin } from "@/lib/site-url";
 import type { Product } from "@/lib/types";
 
 export function buildWishlistShareText(
   items: { product: Product }[],
-  siteOrigin = typeof window !== "undefined" ? window.location.origin : "https://dayeon-shop.web.app",
+  siteOrigin = getPublicSiteOrigin(),
 ): string {
   const lines = ["🎁 dayeon 위시리스트 — 나중에 사고 싶은 렌즈"];
   items.forEach((item, i) => {
@@ -21,11 +22,22 @@ export function shareWhatsApp(text: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
 }
 
-export function shareFacebook(url: string, quote: string) {
+export function buildFacebookShareUrl(
+  items: { product: Product }[],
+  siteOrigin = getPublicSiteOrigin(),
+): string {
+  const ids = items.map((item) => item.product.id).filter(Boolean);
+  if (ids.length === 1) {
+    return `${siteOrigin}/product/${ids[0]}`;
+  }
+  return `${siteOrigin}/share/wishlist?ids=${ids.join(",")}`;
+}
+
+export function shareFacebook(url: string) {
   window.open(
-    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(quote)}`,
-    "_blank",
-    "noopener,noreferrer",
+    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&display=popup`,
+    "facebook-share",
+    "width=640,height=680,noopener,noreferrer",
   );
 }
 

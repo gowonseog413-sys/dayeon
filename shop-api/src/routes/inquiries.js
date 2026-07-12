@@ -35,6 +35,52 @@ router.get("/:id", authRequired, (req, res) => {
   res.json({ inquiry: publicInquiry(inq) });
 });
 
+router.post("/guest", (req, res) => {
+  const { subject, body, userName, userEmail, userPhone } = req.body || {};
+  if (!userName?.trim()) {
+    return res.status(400).json({ error: "이름을 입력해 주세요." });
+  }
+  if (!userEmail?.trim() || !String(userEmail).includes("@")) {
+    return res.status(400).json({ error: "올바른 이메일을 입력해 주세요." });
+  }
+  if (!userPhone?.trim()) {
+    return res.status(400).json({ error: "연락 가능한 휴대폰 번호를 입력해 주세요." });
+  }
+  if (!body?.trim()) {
+    return res.status(400).json({ error: "문의 내용을 입력해 주세요." });
+  }
+
+  const db = readDb();
+  ensureInquiries(db);
+  const now = new Date().toISOString();
+  const inquiry = {
+    id: uuid(),
+    userId: "guest",
+    category: "other",
+    subject: (subject || "비밀번호/계정 문의").trim().slice(0, 120),
+    body: body.trim().slice(0, 5000),
+    orderId: null,
+    status: "pending",
+    userName: userName.trim().slice(0, 80),
+    userEmail: userEmail.trim().slice(0, 120),
+    userPhone: userPhone.trim().slice(0, 40),
+    createdAt: now,
+    updatedAt: now,
+    userReadAt: null,
+    replies: [],
+  };
+
+  updateDb((d) => {
+    ensureInquiries(d);
+    d.inquiries.push(inquiry);
+  });
+
+  res.status(201).json({
+    inquiry: publicInquiry(inquiry),
+    message: "문의가 접수되었습니다. 관리자 확인 후 연락드리겠습니다.",
+  });
+});
+
 router.post("/", authRequired, (req, res) => {
   const { category, subject, body, orderId, userName, userEmail, userPhone } =
     req.body || {};

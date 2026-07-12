@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { ErpPagination } from "@/components/erp/ErpPagination";
 import { StockCheckoutModal } from "@/components/StockCheckoutModal";
 import { useStockCheckoutGate } from "@/hooks/useStockCheckoutGate";
@@ -18,6 +20,8 @@ const PAGE_SIZE = 10;
 type BagLine = CartItem & { product: Product };
 
 export default function BagPage() {
+  const router = useRouter();
+  const { user, ready } = useAuth();
   const [lines, setLines] = useState<BagLine[]>([]);
   const [msg, setMsg] = useState("");
   const [page, setPage] = useState(1);
@@ -48,13 +52,18 @@ export default function BagPage() {
   }, []);
 
   useEffect(() => {
+    if (ready && !user) {
+      router.replace("/login?next=/bag");
+      return;
+    }
+    if (!user) return;
     load();
     const refresh = () => {
       load();
     };
     window.addEventListener("cart-updated", refresh);
     return () => window.removeEventListener("cart-updated", refresh);
-  }, [load]);
+  }, [load, ready, user, router]);
 
   const total = lines.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

@@ -17,5 +17,5 @@ export function navItemDropdownClass(isClean: boolean, open: boolean): string {
     : open
       ? "border-[var(--pink-accent)] text-[var(--pink-accent)]"
       : "";
-  return `${NAV_ITEM_BASE} cursor-default ${hover} ${active}`.trim();
+  return `${NAV_ITEM_BASE} cursor-pointer ${hover} ${active}`.trim();
 }

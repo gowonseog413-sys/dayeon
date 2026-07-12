@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpContentTabs } from "@/components/erp/ErpContentTabs";
 import { NatePagination } from "@/components/NatePagination";
 import { TierBadge } from "@/components/TierBadge";
@@ -47,13 +48,9 @@ type ReferralSettings = {
 const PROFILE_POINTS_PAGE_SIZE = 5;
 const POLL_MS = 3000;
 
-const POINTS_TABS = [
-  { id: "status", label: "나의현황" },
-  { id: "guide", label: "등급안내" },
-  { id: "referrals", label: "추천현황" },
-] as const;
+const POINTS_TAB_IDS = ["status", "guide", "referrals"] as const;
 
-type PointsTabId = (typeof POINTS_TABS)[number]["id"];
+type PointsTabId = (typeof POINTS_TAB_IDS)[number];
 
 function isPointsTabId(value: string | null): value is PointsTabId {
   return value === "status" || value === "guide" || value === "referrals";
@@ -98,6 +95,7 @@ function formatPointAmount(amount: number) {
 function ProfilePointsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, tFmt, locale } = useI18n();
   const tabParam = searchParams.get("tab");
   const activeTab: PointsTabId = isPointsTabId(tabParam) ? tabParam : "status";
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -225,23 +223,24 @@ function ProfilePointsContent() {
   };
 
   if (!ready || !user) {
-    return <p className="text-sm text-gray-500">로딩 중...</p>;
+    return <p className="text-sm text-gray-500">{t("common.loading")}</p>;
   }
 
-  const name = honorificName(user);
+  const name = honorificName(user, locale);
   const tierId = userTierId(user);
   const points = userPoints(user);
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-[var(--pink-deep)]">포인트 · 등급</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        나의 등급과 보유 포인트를 확인하고, 등급별 혜택을 안내받을 수 있습니다.
-      </p>
+      <h1 className="text-2xl font-semibold text-[var(--pink-deep)]">{t("profile.title.points")}</h1>
+      <p className="mt-1 text-sm text-gray-500">{t("profile.desc.points")}</p>
 
       <ErpContentTabs
         className="mt-5"
-        tabs={[...POINTS_TABS]}
+        tabs={POINTS_TAB_IDS.map((id) => ({
+          id,
+          label: t(`profile.points.tab.${id}`),
+        }))}
         active={activeTab}
         onChange={setTab}
       />
@@ -250,29 +249,31 @@ function ProfilePointsContent() {
         <div className="mt-6">
           <div className="mb-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border-2 border-[var(--pink-border)] bg-white p-5 shadow-[0_4px_18px_var(--pink-shadow)]">
-              <p className="text-xs font-semibold text-gray-500">현재 등급</p>
+              <p className="text-xs font-semibold text-gray-500">{t("profile.points.currentTier")}</p>
               <div className="mt-2">
                 <TierBadge tier={tierId} size="md" />
               </div>
               <p className="mt-2 text-sm text-gray-600">{name}</p>
             </div>
             <div className="rounded-2xl border-2 border-[var(--pink-border)] bg-white p-5 shadow-[0_4px_18px_var(--pink-shadow)]">
-              <p className="text-xs font-semibold text-gray-500">보유 포인트</p>
+              <p className="text-xs font-semibold text-gray-500">{t("profile.points.balance")}</p>
               <p className="mt-2 text-3xl font-bold text-[var(--pink-deep)]">
-                {points.toLocaleString("ko-KR")}P
+                {points.toLocaleString(locale === "id" ? "id-ID" : locale === "en" ? "en-US" : "ko-KR")}P
               </p>
-              <p className="mt-2 text-sm text-gray-500">적립금 환산 {formatRp(points)}</p>
+              <p className="mt-2 text-sm text-gray-500">
+                {t("profile.points.converted")} {formatRp(points)}
+              </p>
             </div>
           </div>
 
           <div className="rounded-2xl border-2 border-[var(--pink-border)] bg-white p-5 shadow-[0_4px_18px_var(--pink-shadow)]">
             <h2 className="mb-4 text-sm font-semibold text-[var(--pink-deep)]">
-              포인트 획득/사용 내역
+              {t("profile.points.history")}
             </h2>
             {historyLoading ? (
-              <p className="text-sm text-gray-500">불러오는 중...</p>
+              <p className="text-sm text-gray-500">{t("common.loading")}</p>
             ) : history.length === 0 ? (
-              <p className="text-sm text-gray-500">아직 포인트 획득/사용 내역이 없습니다.</p>
+              <p className="text-sm text-gray-500">{t("profile.points.historyEmpty")}</p>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {history.map((item) => (
@@ -308,10 +309,10 @@ function ProfilePointsContent() {
 
       {activeTab === "guide" ? (
         <div className="mt-6 rounded-2xl border-2 border-[var(--pink-border)] bg-white p-5 shadow-[0_4px_18px_var(--pink-shadow)]">
-          <h2 className="mb-3 text-sm font-semibold text-[var(--pink-deep)]">등급 안내</h2>
-          <p className="mb-4 text-xs text-gray-500">
-            등급은 누적 구매금액 기준이며, 구매 완료 시 등급별 적립률로 포인트가 지급됩니다.
-          </p>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--pink-deep)]">
+            {t("profile.points.guideTitle")}
+          </h2>
+          <p className="mb-4 text-xs text-gray-500">{t("profile.points.guideDesc")}</p>
           <ul className="space-y-3 text-sm text-gray-600">
             {TIER_ORDER.map((tier) => (
               <li
@@ -324,9 +325,13 @@ function ProfilePointsContent() {
                   <TierBadge tier={tier} size="sm" />
                   <span className="text-xs text-gray-500">
                     {thresholdFor(tier, settings) > 0
-                      ? `${formatRp(thresholdFor(tier, settings))} 이상 구매`
-                      : "기본 등급"}
-                    {settings ? ` · 구매 적립 ${earnRateFor(tier, settings)}%` : ""}
+                      ? tFmt("profile.points.purchaseOver", {
+                          amount: formatRp(thresholdFor(tier, settings)),
+                        })
+                      : t("profile.points.defaultTier")}
+                    {settings
+                      ? ` · ${tFmt("profile.points.earnRate", { rate: String(earnRateFor(tier, settings)) })}`
+                      : ""}
                   </span>
                 </div>
                 <p className="mt-1 text-xs">{TIER_DESC[tier]}</p>
@@ -409,9 +414,14 @@ function ProfilePointsContent() {
   );
 }
 
+function ProfilePointsFallback() {
+  const { t } = useI18n();
+  return <p className="text-sm text-gray-500">{t("common.loading")}</p>;
+}
+
 export default function ProfilePointsPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-gray-500">로딩 중...</p>}>
+    <Suspense fallback={<ProfilePointsFallback />}>
       <ProfilePointsContent />
     </Suspense>
   );

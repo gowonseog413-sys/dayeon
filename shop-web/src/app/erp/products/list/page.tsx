@@ -3,15 +3,17 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { ErpPagination } from "@/components/erp/ErpPagination";
 import { api, formatRp } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import { filterProducts, formatProductDate, PRODUCT_PAGE_SIZE } from "@/lib/erp-products";
 import { productImageFallback } from "@/lib/product-image-fallback";
 import type { Product } from "@/lib/types";
 
 export default function ErpProductListPage() {
+  const { t, tFmt } = useI18n();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [filter, setFilter] = useState("");
@@ -20,7 +22,7 @@ export default function ErpProductListPage() {
 
   function load() {
     setLoading(true);
-    api<{ products: Product[] }>("/api/admin/products", { token: getToken() })
+    api<{ products: Product[] }>("/api/admin/products", { token: getErpToken() })
       .then((d) => setProducts(d.products))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
@@ -45,18 +47,18 @@ export default function ErpProductListPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("이 상품을 삭제할까요?")) return;
-    await api(`/api/admin/products/${id}`, { method: "DELETE", token: getToken() });
+    if (!confirm(t("erp.products.list.confirmDelete"))) return;
+    await api(`/api/admin/products/${id}`, { method: "DELETE", token: getErpToken() });
     load();
   }
 
   return (
     <ErpPageShell
-      title="상품목록리스트"
-      description="등록된 상품을 확인·수정·삭제할 수 있습니다."
+      titleKey="erp.nav.productsList"
+      descriptionKey="erp.products.list.description"
     >
       <input
-        placeholder="상품명·브랜드 검색"
+        placeholder={t("erp.products.list.searchPlaceholder")}
         value={filter}
         onChange={(e) => {
           setFilter(e.target.value);
@@ -66,23 +68,23 @@ export default function ErpProductListPage() {
       />
 
       <p className="mb-2 text-xs text-gray-500">
-        총 {total}건 · {PRODUCT_PAGE_SIZE}개씩 · No. 역순 (최신이 큰 번호)
+        {tFmt("erp.products.list.summary", { total, size: PRODUCT_PAGE_SIZE })}
       </p>
 
       {loading ? (
-        <p className="text-sm text-gray-400">불러오는 중…</p>
+        <p className="text-sm text-gray-400">{t("erp.common.loading")}</p>
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-left text-sm">
               <thead className="border-b bg-gray-50 text-gray-500">
                 <tr>
-                  <th className="w-12 px-2 py-1.5">No.</th>
-                  <th className="w-24 px-2 py-1.5 whitespace-nowrap">등록날짜</th>
-                  <th className="px-2 py-1.5">이미지</th>
-                  <th className="px-2 py-1.5">브랜드 / 이름</th>
-                  <th className="px-2 py-1.5">카테고리</th>
-                  <th className="px-2 py-1.5">가격</th>
+                  <th className="w-12 px-2 py-1.5">{t("erp.products.col.no")}</th>
+                  <th className="w-24 px-2 py-1.5 whitespace-nowrap">{t("erp.products.col.createdAt")}</th>
+                  <th className="px-2 py-1.5">{t("erp.products.col.image")}</th>
+                  <th className="px-2 py-1.5">{t("erp.products.col.brandName")}</th>
+                  <th className="px-2 py-1.5">{t("erp.products.col.category")}</th>
+                  <th className="px-2 py-1.5">{t("erp.products.col.price")}</th>
                   <th className="px-2 py-1.5" />
                 </tr>
               </thead>
@@ -121,6 +123,7 @@ function ProductRow({
   onEdit: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useI18n();
   const fallback = productImageFallback(p);
   const [imgSrc, setImgSrc] = useState(p.image);
 
@@ -159,13 +162,13 @@ function ProductRow({
           rel="noreferrer"
           className="mr-3 text-gray-500 hover:underline"
         >
-          보기
+          {t("erp.products.col.view")}
         </a>
         <button type="button" className="mr-3 text-[var(--pink-accent)]" onClick={onEdit}>
-          수정
+          {t("erp.common.edit")}
         </button>
         <button type="button" className="text-red-500" onClick={onRemove}>
-          삭제
+          {t("erp.common.delete")}
         </button>
       </td>
     </tr>

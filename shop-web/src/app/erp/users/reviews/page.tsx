@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpContentTabs } from "@/components/erp/ErpContentTabs";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
@@ -10,7 +11,7 @@ import { ErpReviewWorkPanel } from "@/components/erp/ErpReviewWorkPanel";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import { productImageFallback } from "@/lib/product-image-fallback";
 import {
   DEFAULT_REVIEW_REWARD,
@@ -24,15 +25,13 @@ export const ERP_REVIEW_PAGE_SIZE = 4;
 const ERP_POINT_HISTORY_PAGE_SIZE = 20;
 const POLL_MS = 3000;
 
-const PAGE_TITLE = "회원리뷰/포인트";
-
-const REVIEWS_TABS = [
-  { id: "reviews", label: "회원리뷰" },
-  { id: "points", label: "포인트내역" },
-  { id: "work", label: "리뷰작업" },
+const REVIEWS_TAB_KEYS = [
+  { id: "reviews", labelKey: "erp.users.reviews.tabReviews" },
+  { id: "points", labelKey: "erp.users.reviews.tabPoints" },
+  { id: "work", labelKey: "erp.users.reviews.tabWork" },
 ] as const;
 
-type ReviewsTabId = (typeof REVIEWS_TABS)[number]["id"];
+type ReviewsTabId = (typeof REVIEWS_TAB_KEYS)[number]["id"];
 
 function isReviewsTabId(value: string | null): value is ReviewsTabId {
   return value === "reviews" || value === "points" || value === "work";
@@ -69,6 +68,7 @@ function formatPointAmount(amount: number) {
 }
 
 function ErpReviewsContent() {
+  const { t, tFmt } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -88,12 +88,19 @@ function ErpReviewsContent() {
   const [pointsTotalPages, setPointsTotalPages] = useState(1);
   const [pointsLoading, setPointsLoading] = useState(true);
 
+  const reviewsTabs = REVIEWS_TAB_KEYS.map((tab) => ({
+    id: tab.id,
+    label: t(tab.labelKey),
+  }));
+  const statusLabel = (on: boolean) =>
+    on ? t("erp.users.points.statusOn") : t("erp.users.points.statusOff");
+
   const loadReviews = useCallback(async () => {
     try {
       const [reviewData, rewardData] = await Promise.all([
-        api<{ reviews: AdminReview[] }>("/api/admin/reviews?scope=member", { token: getToken() }),
+        api<{ reviews: AdminReview[] }>("/api/admin/reviews?scope=member", { token: getErpToken() }),
         api<{ reviewReward: ReviewReward }>("/api/admin/settings/review-reward", {
-          token: getToken(),
+          token: getErpToken(),
         }),
       ]);
       setReviews(reviewData.reviews);
@@ -116,7 +123,7 @@ function ErpReviewsContent() {
           total: number;
           totalPages: number;
           page: number;
-        }>(`/api/admin/point-transactions?${qs}`, { token: getToken() });
+        }>(`/api/admin/point-transactions?${qs}`, { token: getErpToken() });
         setPointHistory(data.items);
         setPointsTotal(data.total);
         setPointsTotalPages(data.totalPages);
@@ -189,18 +196,21 @@ function ErpReviewsContent() {
   }
 
   async function removeReview(id: string) {
-    if (!confirm("이 리뷰를 삭제할까요?")) return;
+    if (!confirm(t("erp.users.reviews.confirmDelete"))) return;
     setDeletingId(id);
     setErrorMsg("");
     try {
       await api(`/api/admin/reviews/${id}`, {
         method: "DELETE",
-        token: getToken(),
+        token: getErpToken(),
       });
-      showSaveSuccess({ message: "삭제되었습니다", subMessage: "리뷰가 삭제되었습니다." });
+      showSaveSuccess({
+        message: t("erp.common.deletedTitle"),
+        subMessage: t("erp.users.reviews.deletedMsg"),
+      });
       await loadReviews();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.deleteFailed"));
     } finally {
       setDeletingId(null);
     }
@@ -214,7 +224,7 @@ function ErpReviewsContent() {
         "/api/admin/settings/review-reward",
         {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ reviewReward }),
         },
       );
@@ -223,11 +233,13 @@ function ErpReviewsContent() {
       publishReviewRewardUpdate(next);
       showSaveSuccess({
         subMessage: next.enabled
-          ? `리뷰 작성 포인트 ${next.points.toLocaleString("ko-KR")}P · 쇼핑몰에 실시간 반영됩니다.`
-          : "리뷰 작성 포인트 지급이 중지되었습니다.",
+          ? tFmt("erp.users.reviews.rewardSavedEnabled", {
+              points: next.points.toLocaleString("ko-KR"),
+            })
+          : t("erp.users.reviews.rewardSavedDisabled"),
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -235,19 +247,19 @@ function ErpReviewsContent() {
 
   if (loading && activeTab === "reviews") {
     return (
-      <ErpPageShell title={PAGE_TITLE}>
-        <p className="text-sm text-gray-500">불러오는 중…</p>
+      <ErpPageShell titleKey="erp.nav.usersReviews">
+        <p className="text-sm text-gray-500">{t("erp.common.loading")}</p>
       </ErpPageShell>
     );
   }
 
   return (
     <ErpPageShell
-      title={PAGE_TITLE}
-      description="회원 리뷰 확인·포인트 설정·관리자 리뷰 작업을 한곳에서 관리합니다. 포인트 내역은 실시간으로 반영됩니다."
+      titleKey="erp.nav.usersReviews"
+      descriptionKey="erp.users.reviews.description"
     >
       <ErpContentTabs
-        tabs={[...REVIEWS_TABS]}
+        tabs={reviewsTabs}
         active={activeTab}
         onChange={(id) => switchTab(id as ReviewsTabId)}
         className="mb-4"
@@ -259,12 +271,15 @@ function ErpReviewsContent() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div>
             <p className="mb-3 text-xs text-gray-500">
-              회원 리뷰 {reviewTotal}건 · 등록일 역순 · {ERP_REVIEW_PAGE_SIZE}건씩
+              {tFmt("erp.users.reviews.summary", {
+                total: reviewTotal,
+                pageSize: ERP_REVIEW_PAGE_SIZE,
+              })}
             </p>
 
             {reviews.length === 0 ? (
               <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-gray-500">
-                등록된 리뷰가 없습니다.
+                {t("erp.users.reviews.noReviews")}
               </p>
             ) : (
               <>
@@ -285,7 +300,7 @@ function ErpReviewsContent() {
                               onClick={() => removeReview(r.id)}
                               className="mt-1 text-xs text-red-500 hover:underline disabled:opacity-50"
                             >
-                              {deletingId === r.id ? "삭제 중…" : "삭제"}
+                              {deletingId === r.id ? t("erp.common.deleting") : t("erp.common.delete")}
                             </button>
                           </div>
                         </div>
@@ -319,7 +334,9 @@ function ErpReviewsContent() {
                             <p className="mt-2 whitespace-pre-wrap text-gray-700">{r.content}</p>
                             {r.pointsAwarded ? (
                               <p className="mt-1 text-xs text-emerald-600">
-                                +{r.pointsAwarded.toLocaleString("ko-KR")}P 적립
+                                {tFmt("erp.users.reviews.pointsAwarded", {
+                                  points: r.pointsAwarded.toLocaleString("ko-KR"),
+                                })}
                               </p>
                             ) : null}
                           </div>
@@ -338,11 +355,8 @@ function ErpReviewsContent() {
           </div>
 
           <div className="h-fit rounded-xl border bg-white p-4 lg:sticky lg:top-4">
-            <p className="mb-2 text-sm font-semibold text-gray-800">리뷰 작성 포인트</p>
-            <p className="mb-3 text-xs text-gray-500">
-              회원이 리뷰를 등록하면 설정한 포인트가 자동 적립됩니다. 쇼핑몰 내 리뷰 안내 문구에
-              실시간 반영됩니다.
-            </p>
+            <p className="mb-2 text-sm font-semibold text-gray-800">{t("erp.users.reviews.rewardTitle")}</p>
+            <p className="mb-3 text-xs text-gray-500">{t("erp.users.reviews.rewardDesc")}</p>
             <label className="mb-3 flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -351,10 +365,10 @@ function ErpReviewsContent() {
                   setReviewReward({ ...reviewReward, enabled: e.target.checked })
                 }
               />
-              리뷰 포인트 지급 {reviewReward.enabled ? "진행함" : "진행안함"}
+              {tFmt("erp.users.reviews.rewardEnabled", { status: statusLabel(reviewReward.enabled) })}
             </label>
             <label className="mb-4 block text-sm">
-              <span className="mb-1 block text-gray-600">지급 포인트 (P)</span>
+              <span className="mb-1 block text-gray-600">{t("erp.users.reviews.rewardPoints")}</span>
               <input
                 type="number"
                 min={0}
@@ -373,7 +387,7 @@ function ErpReviewsContent() {
                 onClick={saveReward}
                 className="rounded-lg bg-[#1e293b] px-4 py-2 text-sm text-white disabled:opacity-50"
               >
-                {saving ? "저장 중…" : "수정 저장"}
+                {saving ? t("erp.common.saving") : t("erp.users.points.saveChanges")}
               </button>
             </ErpFormActions>
           </div>
@@ -385,17 +399,19 @@ function ErpReviewsContent() {
           onError={setErrorMsg}
         />
       ) : pointsLoading ? (
-        <p className="text-sm text-gray-500">불러오는 중…</p>
+        <p className="text-sm text-gray-500">{t("erp.common.loading")}</p>
       ) : (
         <div>
           <p className="mb-3 text-xs text-gray-500">
-            총 {pointsTotal}건 · 등록일 역순 · {ERP_POINT_HISTORY_PAGE_SIZE}건씩 · 3초마다 자동
-            갱신
+            {tFmt("erp.users.reviews.pointsSummary", {
+              total: pointsTotal,
+              pageSize: ERP_POINT_HISTORY_PAGE_SIZE,
+            })}
           </p>
 
           {pointHistory.length === 0 ? (
             <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-gray-500">
-              포인트 적립·사용 내역이 없습니다.
+              {t("erp.users.reviews.noPointHistory")}
             </p>
           ) : (
             <>
@@ -444,15 +460,18 @@ function ErpReviewsContent() {
   );
 }
 
+function ReviewsLoadingFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.usersReviews">
+      <p className="text-sm text-gray-500">{t("erp.common.loading")}</p>
+    </ErpPageShell>
+  );
+}
+
 export default function ErpUsersReviewsPage() {
   return (
-    <Suspense
-      fallback={
-        <ErpPageShell title={PAGE_TITLE}>
-          <p className="text-sm text-gray-500">불러오는 중…</p>
-        </ErpPageShell>
-      }
-    >
+    <Suspense fallback={<ReviewsLoadingFallback />}>
       <ErpReviewsContent />
     </Suspense>
   );

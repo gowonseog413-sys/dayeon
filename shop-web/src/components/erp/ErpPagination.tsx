@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/I18nProvider";
+
 type Props = {
   page: number;
   totalPages: number;
@@ -8,6 +10,7 @@ type Props = {
 
 /** 네이트 스타일 페이지 번호 (1 … 5 6 7 … 10) */
 export function ErpPagination({ page, totalPages, onChange }: Props) {
+  const { t } = useI18n();
   if (totalPages <= 1) return null;
 
   const items: (number | "…")[] = [];
@@ -29,14 +32,14 @@ export function ErpPagination({ page, totalPages, onChange }: Props) {
   }
 
   return (
-    <nav className="mt-2 flex flex-wrap items-center justify-center gap-1 text-sm" aria-label="페이지">
+    <nav className="mt-2 flex flex-wrap items-center justify-center gap-1 text-sm" aria-label={t("erp.common.paginationAria")}>
       <button
         type="button"
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
         className="min-w-[2rem] rounded border px-2 py-1 disabled:opacity-40"
       >
-        이전
+        {t("erp.common.prev")}
       </button>
       {ordered.map((n, i) =>
         n === "…" ? (
@@ -64,7 +67,7 @@ export function ErpPagination({ page, totalPages, onChange }: Props) {
         onClick={() => onChange(page + 1)}
         className="min-w-[2rem] rounded border px-2 py-1 disabled:opacity-40"
       >
-        다음
+        {t("erp.common.next")}
       </button>
     </nav>
   );

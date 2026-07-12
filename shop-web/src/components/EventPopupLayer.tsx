@@ -94,14 +94,14 @@ function EventPopupLayerInner() {
   }, [countryOverride]);
 
   useEffect(() => {
-    if (pathname.startsWith("/erp")) return;
+    if (pathname.startsWith("/erp") || pathname.startsWith("/admin-gate")) return;
     load();
     const id = window.setInterval(load, POLL_MS);
     return () => window.clearInterval(id);
   }, [pathname, load]);
 
   useEffect(() => {
-    if (pathname.startsWith("/erp")) {
+    if (pathname.startsWith("/erp") || pathname.startsWith("/admin-gate")) {
       setOpen(false);
       setCurrent(null);
       return;
@@ -117,7 +117,7 @@ function EventPopupLayerInner() {
     setSkipToday(false);
   }, [popups, pathname, visitorTz]);
 
-  if (!open || !current || pathname.startsWith("/erp")) return null;
+  if (!open || !current || pathname.startsWith("/erp") || pathname.startsWith("/admin-gate")) return null;
 
   function close(hideToday = false) {
     if (hideToday) {

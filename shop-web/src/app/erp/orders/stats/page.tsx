@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
+import { useI18n } from "@/components/I18nProvider";
 import { api, formatRp } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
-import { CATEGORY_LABELS, type AnalyticsBoard } from "@/lib/erp-analytics";
+import { getErpToken } from "@/lib/auth-store";
+import { analyticsCategoryLabel, type AnalyticsBoard } from "@/lib/erp-analytics";
 import { orderStatusLabel } from "@/lib/order-display";
 
 const PERIODS = [7, 14, 30] as const;
@@ -48,6 +49,9 @@ function periodLabel(data: AnalyticsBoard) {
 }
 
 export default function ErpOrderStatsPage() {
+  const { t, tFmt, locale } = useI18n();
+  const dateLocale = locale === "id" ? "id-ID" : locale === "en" ? "en-US" : "ko-KR";
+
   const [query, setQuery] = useState<StatsQuery>({ mode: "preset", days: 14 });
   const [customFrom, setCustomFrom] = useState(() => daysAgoInput(13));
   const [customTo, setCustomTo] = useState(todayInput);
@@ -64,8 +68,8 @@ export default function ErpOrderStatsPage() {
           ? `/api/admin/analytics?from=${query.from}&to=${query.to}`
           : `/api/admin/analytics?days=${query.days}`;
       const [analytics, counts] = await Promise.all([
-        api<AnalyticsBoard>(analyticsUrl, { token: getToken() }),
-        api<{ tabCounts: TabCounts }>("/api/admin/orders/stats", { token: getToken() }),
+        api<AnalyticsBoard>(analyticsUrl, { token: getErpToken() }),
+        api<{ tabCounts: TabCounts }>("/api/admin/orders/stats", { token: getErpToken() }),
       ]);
       setData(analytics);
       setTabCounts(counts.tabCounts);
@@ -73,11 +77,11 @@ export default function ErpOrderStatsPage() {
     } catch (err) {
       setData(null);
       setTabCounts(null);
-      setError(err instanceof Error ? err.message : "통계를 불러올 수 없습니다.");
+      setError(err instanceof Error ? err.message : t("erp.orders.statsError"));
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [query, t]);
 
   useEffect(() => {
     load();
@@ -89,11 +93,15 @@ export default function ErpOrderStatsPage() {
     : 0;
   const activePreset = query.mode === "preset" ? query.days : null;
 
+  const statusRows = [
+    { key: "pending" as const, labelKey: "erp.orders.statusPending", color: "#d97706" },
+    { key: "shipped" as const, labelKey: "erp.orders.statusShipped", color: "#0284c7" },
+    { key: "completed" as const, labelKey: "erp.orders.statusCompleted", color: "#16a34a" },
+    { key: "cancelled" as const, labelKey: "erp.orders.statusCancelled", color: "#9ca3af" },
+  ];
+
   return (
-    <ErpPageShell
-      title="주문통계"
-      description="주문·매출·배송·반품 현황을 기간별로 확인합니다."
-    >
+    <ErpPageShell titleKey="erp.nav.ordersStats" descriptionKey="erp.orders.statsDesc">
       <div className="mb-3 flex flex-wrap items-end gap-2">
         <div className="flex gap-1 rounded-lg border bg-white p-1">
           {PERIODS.map((p) => (
@@ -107,7 +115,7 @@ export default function ErpOrderStatsPage() {
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              최근 {p}일
+              {tFmt("erp.orders.recentDays", { days: p })}
             </button>
           ))}
         </div>
@@ -118,7 +126,7 @@ export default function ErpOrderStatsPage() {
             value={customFrom}
             onChange={(e) => setCustomFrom(e.target.value)}
             className="rounded border border-gray-200 px-2 py-1 text-xs"
-            aria-label="시작일"
+            aria-label={t("erp.orders.dateFrom")}
           />
           <span className="text-xs text-gray-400">~</span>
           <input
@@ -126,7 +134,7 @@ export default function ErpOrderStatsPage() {
             value={customTo}
             onChange={(e) => setCustomTo(e.target.value)}
             className="rounded border border-gray-200 px-2 py-1 text-xs"
-            aria-label="종료일"
+            aria-label={t("erp.orders.dateTo")}
           />
           <button
             type="button"
@@ -141,25 +149,48 @@ export default function ErpOrderStatsPage() {
                 : "border border-[#8b5e4c] text-[#8b5e4c] hover:bg-[#faf6f0]"
             }`}
           >
-            {loading && query.mode === "range" ? "조회 중…" : "조회"}
+            {loading && query.mode === "range" ? t("erp.orders.querying") : t("erp.orders.query")}
           </button>
         </div>
       </div>
 
       {tabCounts && (
         <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard label="주문 접수" value={`${tabCounts.incoming}건`} sub="결제·발송 대기" />
-          <StatCard label="주문배송" value={`${tabCounts.shipping}건`} sub="배송 중" />
-          <StatCard label="반품주문" value={`${tabCounts.returns}건`} sub="반품 처리 중" />
-          <StatCard label="최종마감" value={`${tabCounts.closed}건`} sub="배송 완료" />
-          <StatCard label="취소" value={`${tabCounts.cancelled}건`} sub={`전체 ${tabCounts.total}건`} />
+          <StatCard
+            label={t("erp.orders.tabIncoming")}
+            value={tFmt("erp.orders.countUnit", { count: tabCounts.incoming })}
+            sub={t("erp.orders.tabIncomingSub")}
+          />
+          <StatCard
+            label={t("erp.nav.ordersShipping")}
+            value={tFmt("erp.orders.countUnit", { count: tabCounts.shipping })}
+            sub={t("erp.orders.tabShippingSub")}
+          />
+          <StatCard
+            label={t("erp.nav.ordersReturns")}
+            value={tFmt("erp.orders.countUnit", { count: tabCounts.returns })}
+            sub={t("erp.orders.tabReturnsSub")}
+          />
+          <StatCard
+            label={t("erp.nav.ordersClosed")}
+            value={tFmt("erp.orders.countUnit", { count: tabCounts.closed })}
+            sub={t("erp.orders.tabClosedSub")}
+          />
+          <StatCard
+            label={t("erp.orders.tabCancelled")}
+            value={tFmt("erp.orders.countUnit", { count: tabCounts.cancelled })}
+            sub={tFmt("erp.orders.tabCancelledSub", { total: tabCounts.total })}
+          />
         </div>
       )}
 
       {data && (
         <p className="mb-3 text-xs text-gray-500">
-          조회 기간: <span className="font-medium text-gray-700">{periodLabel(data)}</span>
-          {query.mode === "range" ? " (직접 설정)" : ` (최근 ${data.periodDays}일)`}
+          {t("erp.orders.periodLabel")}{" "}
+          <span className="font-medium text-gray-700">{periodLabel(data)}</span>
+          {query.mode === "range"
+            ? ` ${t("erp.orders.periodCustom")}`
+            : ` ${tFmt("erp.orders.periodRecent", { days: data.periodDays })}`}
         </p>
       )}
 
@@ -168,35 +199,37 @@ export default function ErpOrderStatsPage() {
       )}
 
       {!data ? (
-        <p className="text-sm text-gray-500">{loading ? "통계 불러오는 중…" : "데이터 없음"}</p>
+        <p className="text-sm text-gray-500">
+          {loading ? t("erp.orders.statsLoading") : t("erp.orders.noData")}
+        </p>
       ) : (
         <div className="space-y-3">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-              label="기간 매출"
+              label={t("erp.orders.periodRevenue")}
               value={formatRp(data.overview.revenue)}
               sub={periodLabel(data)}
             />
             <StatCard
-              label="기간 주문"
-              value={`${data.overview.orders}건`}
-              sub={`평균 ${formatRp(data.overview.avgOrderValue)}`}
+              label={t("erp.orders.periodOrders")}
+              value={tFmt("erp.orders.countUnit", { count: data.overview.orders })}
+              sub={tFmt("erp.orders.avgOrder", { amount: formatRp(data.overview.avgOrderValue) })}
             />
             <StatCard
-              label="오늘 주문"
-              value={`${data.overview.todayOrders}건`}
+              label={t("erp.orders.todayOrders")}
+              value={tFmt("erp.orders.countUnit", { count: data.overview.todayOrders })}
               sub={formatRp(data.overview.todayRevenue)}
             />
             <StatCard
-              label="이번 달 주문"
-              value={`${data.overview.monthOrders}건`}
+              label={t("erp.orders.monthOrders")}
+              value={tFmt("erp.orders.countUnit", { count: data.overview.monthOrders })}
               sub={formatRp(data.overview.monthRevenue)}
             />
           </div>
 
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-gray-800">일별 주문·매출</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-800">{t("erp.orders.dailyChart")}</h3>
               <div className="flex h-44 items-end gap-1 overflow-x-auto border-b border-gray-100 pb-1">
                 {data.dailySales.map((d) => {
                   const h = Math.max(4, Math.round((d.revenue / maxRevenue) * 100));
@@ -204,7 +237,7 @@ export default function ErpOrderStatsPage() {
                     <div
                       key={d.date}
                       className="group flex min-w-[1.75rem] flex-1 flex-col items-center justify-end"
-                      title={`${d.date} · ${formatRp(d.revenue)} · ${d.orders}건`}
+                      title={`${d.date} · ${formatRp(d.revenue)} · ${tFmt("erp.orders.countUnit", { count: d.orders })}`}
                     >
                       <div
                         className="w-full max-w-[2rem] rounded-t bg-[#8b5e4c]/85 transition group-hover:bg-[#8b5e4c]"
@@ -220,24 +253,19 @@ export default function ErpOrderStatsPage() {
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-gray-800">주문 상태 분포</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-800">
+                {t("erp.orders.statusDistribution")}
+              </h3>
               <ul className="space-y-2">
-                {(
-                  [
-                    ["pending", "결제·발송 대기", "#d97706"],
-                    ["shipped", "배송 중", "#0284c7"],
-                    ["completed", "배송 완료", "#16a34a"],
-                    ["cancelled", "취소", "#9ca3af"],
-                  ] as const
-                ).map(([key, label, color]) => {
+                {statusRows.map(({ key, labelKey, color }) => {
                   const count = data.ordersByStatus[key];
                   const pct = statusTotal ? Math.round((count / statusTotal) * 100) : 0;
                   return (
                     <li key={key}>
                       <div className="mb-0.5 flex justify-between text-xs">
-                        <span className="text-gray-600">{label}</span>
+                        <span className="text-gray-600">{t(labelKey)}</span>
                         <span className="font-medium text-gray-800">
-                          {count}건 ({pct}%)
+                          {tFmt("erp.orders.statusCount", { count, pct })}
                         </span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-gray-100">
@@ -255,16 +283,16 @@ export default function ErpOrderStatsPage() {
 
           <div className="grid gap-3 lg:grid-cols-2">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-gray-800">인기 상품 TOP</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-800">{t("erp.orders.topProducts")}</h3>
               {data.topProducts.length === 0 ? (
-                <p className="py-6 text-center text-xs text-gray-400">판매 데이터 없음</p>
+                <p className="py-6 text-center text-xs text-gray-400">{t("erp.orders.noSalesData")}</p>
               ) : (
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b text-left text-gray-500">
-                      <th className="pb-2 font-medium">상품</th>
-                      <th className="pb-2 text-right font-medium">수량</th>
-                      <th className="pb-2 text-right font-medium">매출</th>
+                      <th className="pb-2 font-medium">{t("erp.orders.colProduct")}</th>
+                      <th className="pb-2 text-right font-medium">{t("erp.orders.colQty")}</th>
+                      <th className="pb-2 text-right font-medium">{t("erp.orders.colRevenue")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -286,15 +314,15 @@ export default function ErpOrderStatsPage() {
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-gray-800">카테고리별 매출</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-800">{t("erp.orders.categorySales")}</h3>
               {data.categorySales.length === 0 ? (
-                <p className="py-6 text-center text-xs text-gray-400">데이터 없음</p>
+                <p className="py-6 text-center text-xs text-gray-400">{t("erp.orders.noData")}</p>
               ) : (
                 <ul className="space-y-2 text-xs">
                   {data.categorySales.map((c) => (
                     <li key={c.category} className="flex justify-between gap-2">
                       <span className="text-gray-600">
-                        {CATEGORY_LABELS[c.category] || c.category}
+                        {analyticsCategoryLabel(c.category, locale)}
                       </span>
                       <span className="font-medium text-[#8b5e4c]">{formatRp(c.amount)}</span>
                     </li>
@@ -305,17 +333,17 @@ export default function ErpOrderStatsPage() {
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">최근 주문</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">{t("erp.orders.recentOrders")}</h3>
             {data.recentOrders.length === 0 ? (
-              <p className="py-4 text-center text-xs text-gray-400">주문 없음</p>
+              <p className="py-4 text-center text-xs text-gray-400">{t("erp.orders.noOrders")}</p>
             ) : (
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b text-left text-gray-500">
-                    <th className="pb-2 font-medium">주문번호</th>
-                    <th className="pb-2 font-medium">상태</th>
-                    <th className="pb-2 text-right font-medium">금액</th>
-                    <th className="pb-2 text-right font-medium">일시</th>
+                    <th className="pb-2 font-medium">{t("erp.orders.colOrderNo")}</th>
+                    <th className="pb-2 font-medium">{t("erp.orders.colStatus")}</th>
+                    <th className="pb-2 text-right font-medium">{t("erp.orders.colAmount")}</th>
+                    <th className="pb-2 text-right font-medium">{t("erp.orders.colDateTime")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -324,10 +352,10 @@ export default function ErpOrderStatsPage() {
                       <td className="py-2 font-medium text-[var(--pink-accent)]">
                         {o.orderNumber || o.id.slice(0, 8)}
                       </td>
-                      <td className="py-2 text-gray-600">{orderStatusLabel(o.status)}</td>
+                      <td className="py-2 text-gray-600">{orderStatusLabel(o.status, locale)}</td>
                       <td className="py-2 text-right">{formatRp(o.total)}</td>
                       <td className="py-2 text-right text-gray-500">
-                        {new Date(o.createdAt).toLocaleString("ko-KR")}
+                        {new Date(o.createdAt).toLocaleString(dateLocale)}
                       </td>
                     </tr>
                   ))}

@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 
 export type ErpImageVariant = "main" | "thumb" | "partner" | "hero";
 
@@ -104,7 +104,7 @@ export async function uploadErpImageFile(
   const base = file.name.replace(/\.[^.]+$/, "") || "upload";
   const res = await api<{ url: string }>("/api/admin/upload", {
     method: "POST",
-    token: getToken(),
+    token: getErpToken(),
     body: JSON.stringify({ dataUrl, filename: `${base}.webp` }),
   });
   return res.url;

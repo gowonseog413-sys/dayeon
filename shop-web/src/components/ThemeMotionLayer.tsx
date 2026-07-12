@@ -12,7 +12,7 @@ export function ThemeMotionLayer() {
 
   useEffect(() => setMounted(true), []);
 
-  if (!mounted || pathname.startsWith("/erp")) return null;
+  if (!mounted || pathname.startsWith("/erp") || pathname.startsWith("/admin-gate")) return null;
 
   return createPortal(<ThemeMotionOverlay />, document.body);
 }

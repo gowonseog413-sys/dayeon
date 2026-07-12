@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { mergeCartOnLogin } from "@/lib/cart-store";
 import { mergeWishlistOnLogin } from "@/lib/wishlist-store";
 import { saveSession } from "@/lib/auth-store";
+import { resolveShopOAuthDest } from "@/lib/oauth-redirect";
 import type { User } from "@/lib/types";
 
 function CallbackHandler() {
@@ -26,8 +27,7 @@ function CallbackHandler() {
         saveSession(token, data.user);
         await mergeCartOnLogin(token);
         await mergeWishlistOnLogin(token);
-        const dest = next.startsWith("/login") ? "/profile" : next;
-        window.location.href = dest;
+        window.location.href = resolveShopOAuthDest(next, data.user);
       })
       .catch(() => {
         setError("세션을 확인하지 못했습니다. 다시 로그인해 주세요.");
@@ -46,7 +46,7 @@ function CallbackHandler() {
   }
 
   return (
-    <p className="py-20 text-center text-sm text-gray-500">Google 로그인 처리 중...</p>
+    <p className="py-20 text-center text-sm text-gray-500">소셜 로그인 처리 중...</p>
   );
 }
 

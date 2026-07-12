@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/components/I18nProvider";
 import type { CatalogUsageProduct } from "@/lib/product-catalog-store";
 
 type Props = {
@@ -23,6 +24,8 @@ export function FilterFieldDeleteModal({
   onConfirm,
   onCancel,
 }: Props) {
+  const { t, tFmt } = useI18n();
+
   if (!open) return null;
 
   return (
@@ -38,31 +41,31 @@ export function FilterFieldDeleteModal({
       >
         {warn ? (
           <div className="border-b bg-amber-50 px-5 py-4">
-            <h3 className="text-base font-semibold text-amber-900">필터 항목 삭제</h3>
+            <h3 className="text-base font-semibold text-amber-900">{t("erp.filter.deleteTitle")}</h3>
             <p className="mt-2 text-sm text-amber-800">
-              <strong>{fieldLabel}</strong> 항목에 연결된 데이터가 있습니다.
+              {tFmt("erp.filter.deleteWarnIntro", { fieldLabel })}
             </p>
             <p className="mt-2 text-sm text-amber-800">
-              삭제 시{" "}
+              {t("erp.filter.deleteOnDelete")}
               {productCount > 0 ? (
                 <>
-                  등록 상품 <strong>{productCount}개</strong>
+                  {tFmt("erp.filter.deleteWarnProducts", { count: productCount })}
                 </>
               ) : null}
-              {productCount > 0 && optionCount > 0 ? " 및 " : null}
+              {productCount > 0 && optionCount > 0 ? t("erp.filter.deleteWarnAnd") : null}
               {optionCount > 0 ? (
                 <>
-                  필터 옵션 <strong>{optionCount}개</strong>
+                  {tFmt("erp.filter.deleteWarnOptions", { count: optionCount })}
                 </>
               ) : null}
-              가 <strong>모두 삭제</strong>됩니다. 이 작업은 되돌릴 수 없습니다.
+              {t("erp.filter.deleteWarnSuffix")}
             </p>
           </div>
         ) : (
           <div className="border-b px-5 py-4">
-            <h3 className="text-base font-semibold text-gray-900">필터 항목 삭제</h3>
+            <h3 className="text-base font-semibold text-gray-900">{t("erp.filter.deleteTitle")}</h3>
             <p className="mt-2 text-sm text-gray-600">
-              <strong>{fieldLabel}</strong> 필터 항목을 삭제할까요?
+              {tFmt("erp.filter.deleteConfirm", { fieldLabel })}
             </p>
           </div>
         )}
@@ -75,7 +78,9 @@ export function FilterFieldDeleteModal({
               </li>
             ))}
             {products.length > 20 && (
-              <li className="py-1.5 text-xs text-gray-400">외 {products.length - 20}건…</li>
+              <li className="py-1.5 text-xs text-gray-400">
+                {tFmt("erp.filter.moreItems", { count: products.length - 20 })}
+              </li>
             )}
           </ul>
         ) : null}
@@ -86,14 +91,14 @@ export function FilterFieldDeleteModal({
             onClick={onCancel}
             className="flex-1 rounded-lg border py-2 text-sm text-gray-700 hover:bg-gray-50"
           >
-            취소
+            {t("erp.common.cancel")}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
-            삭제
+            {t("erp.common.delete")}
           </button>
         </div>
       </div>

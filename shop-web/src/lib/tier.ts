@@ -28,3 +28,7 @@ export function normalizeTierId(tier?: string | null): TierId {
 export function tierLabel(tier?: string | null): string {
   return TIER_LABELS[normalizeTierId(tier)];
 }
+
+export function tierMessageKey(tier?: string | null): string {
+  return `tier.${normalizeTierId(tier)}`;
+}

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { getCmsPageLocale } from "../cms-locales.js";
 import { LEGAL_DOCS, LEGAL_LOCALES } from "../default-legal-content.js";
 import { getSiteContent } from "../site-content.js";
 import { PAGE_KEYS, SUPPORT_KEYS } from "../default-site-content.js";
@@ -20,21 +21,31 @@ router.get("/legal/:doc", (req, res) => {
 });
 
 router.get("/pages/:key", (req, res) => {
+  const locale = String(req.query.locale || "ko");
   const content = getSiteContent();
-  const page = content.pages?.[req.params.key];
-  if (!page || !PAGE_KEYS.includes(req.params.key)) {
+  const key = req.params.key;
+  if (!PAGE_KEYS.includes(key)) {
     return res.status(404).json({ error: "페이지 없음" });
   }
-  res.json({ page });
+  const page = getCmsPageLocale(content.pages?.[key], locale);
+  if (!page?.title) {
+    return res.status(404).json({ error: "페이지 없음" });
+  }
+  res.json({ page, locale });
 });
 
 router.get("/support/:key", (req, res) => {
+  const locale = String(req.query.locale || "ko");
   const content = getSiteContent();
-  const page = content.support?.[req.params.key];
-  if (!page || !SUPPORT_KEYS.includes(req.params.key)) {
+  const key = req.params.key;
+  if (!SUPPORT_KEYS.includes(key)) {
     return res.status(404).json({ error: "페이지 없음" });
   }
-  res.json({ page });
+  const page = getCmsPageLocale(content.support?.[key], locale);
+  if (!page?.title) {
+    return res.status(404).json({ error: "페이지 없음" });
+  }
+  res.json({ page, locale });
 });
 
 export default router;

@@ -1,15 +1,16 @@
-import { FOOTER_DOC_TABS } from "@/lib/erp-catalog";
+import { FOOTER_DOC_TAB_ORDER } from "@/lib/erp-catalog";
+import { FOOTER_DOC_LABEL_KEYS } from "@/i18n/erp-messages";
 
 export type ErpSubLink = {
   href: string;
-  label: string;
+  labelKey: string;
   exact?: boolean;
 };
 
 export type ErpModule = {
   id: string;
   href: string;
-  label: string;
+  labelKey: string;
   exact?: boolean;
   subs: ErpSubLink[];
 };
@@ -18,85 +19,98 @@ export const ERP_MODULES: ErpModule[] = [
   {
     id: "dashboard",
     href: "/erp",
-    label: "대시보드",
+    labelKey: "erp.nav.dashboard",
     exact: true,
     subs: [
-      { href: "/erp", label: "대시보드", exact: true },
-      { href: "/erp/stats", label: "통계보드", exact: true },
-      { href: "/erp/counter", label: "카운터조회", exact: true },
+      { href: "/erp", labelKey: "erp.nav.dashboard", exact: true },
+      { href: "/erp/stats", labelKey: "erp.nav.stats", exact: true },
+      { href: "/erp/counter", labelKey: "erp.nav.counter", exact: true },
     ],
   },
   {
     id: "users",
     href: "/erp/users",
-    label: "회원 관리",
+    labelKey: "erp.nav.users",
     subs: [
-      { href: "/erp/users", label: "회원 목록", exact: true },
-      { href: "/erp/users/points", label: "포인트/적립금", exact: true },
-      { href: "/erp/users/reviews", label: "회원리뷰/포인트", exact: true },
-      { href: "/erp/users/referral", label: "추천인제도", exact: true },
+      { href: "/erp/users", labelKey: "erp.nav.usersList", exact: true },
+      { href: "/erp/users/points", labelKey: "erp.nav.usersPoints", exact: true },
+      { href: "/erp/users/reviews", labelKey: "erp.nav.usersReviews", exact: true },
+      { href: "/erp/users/referral", labelKey: "erp.nav.usersReferral", exact: true },
     ],
   },
   {
     id: "orders",
     href: "/erp/orders",
-    label: "주문 관리",
+    labelKey: "erp.nav.orders",
     subs: [
-      { href: "/erp/orders", label: "주문 목록", exact: true },
-      { href: "/erp/orders/shipping", label: "주문배송", exact: true },
-      { href: "/erp/orders/returns", label: "반품주문", exact: true },
-      { href: "/erp/orders/closed", label: "최종마감", exact: true },
-      { href: "/erp/orders/stats", label: "주문통계", exact: true },
+      { href: "/erp/orders", labelKey: "erp.nav.ordersList", exact: true },
+      { href: "/erp/orders/shipping", labelKey: "erp.nav.ordersShipping", exact: true },
+      { href: "/erp/orders/returns", labelKey: "erp.nav.ordersReturns", exact: true },
+      { href: "/erp/orders/closed", labelKey: "erp.nav.ordersClosed", exact: true },
+      { href: "/erp/orders/stats", labelKey: "erp.nav.ordersStats", exact: true },
     ],
   },
   {
     id: "payments",
     href: "/erp/payments",
-    label: "결제수단관리",
+    labelKey: "erp.nav.payments",
     subs: [
-      { href: "/erp/payments", label: "결제 채널 설정", exact: true },
-      { href: "/erp/payments/profiles", label: "회원 결제수단", exact: true },
+      { href: "/erp/payments", labelKey: "erp.nav.paymentsChannels", exact: true },
+      { href: "/erp/payments/profiles", labelKey: "erp.nav.paymentsProfiles", exact: true },
     ],
   },
   {
     id: "products",
     href: "/erp/products",
-    label: "상품 관리",
+    labelKey: "erp.nav.products",
     subs: [
-      { href: "/erp/products", label: "상품 등록", exact: true },
-      { href: "/erp/products/list", label: "상품목록리스트", exact: true },
-      { href: "/erp/products/stock", label: "상품재고", exact: true },
-      { href: "/erp/products/catalog", label: "카테고리 속성", exact: true },
-      { href: "/erp/products/filters", label: "필터 카데고리", exact: true },
+      { href: "/erp/products", labelKey: "erp.nav.productsRegister", exact: true },
+      { href: "/erp/products/list", labelKey: "erp.nav.productsList", exact: true },
+      { href: "/erp/products/stock", labelKey: "erp.nav.productsStock", exact: true },
+      { href: "/erp/products/catalog", labelKey: "erp.nav.productsCatalog", exact: true },
+      { href: "/erp/products/filters", labelKey: "erp.nav.productsFilters", exact: true },
     ],
   },
   {
     id: "articles",
     href: "/erp/articles",
-    label: "언론 보도",
+    labelKey: "erp.nav.articles",
     subs: [
-      { href: "/erp/articles", label: "언론 보도 등록", exact: true },
-      { href: "/erp/articles/list", label: "게시물 목록", exact: true },
-      { href: "/erp/articles/categories", label: "언론보도 카테고리", exact: true },
+      { href: "/erp/articles", labelKey: "erp.nav.articlesRegister", exact: true },
+      { href: "/erp/articles/list", labelKey: "erp.nav.articlesList", exact: true },
+      { href: "/erp/articles/categories", labelKey: "erp.nav.articlesCategories", exact: true },
     ],
   },
   {
     id: "pages",
     href: "/erp/pages/about",
-    label: "하단문서관리",
-    subs: FOOTER_DOC_TABS.map((t) => ({ href: t.href, label: t.label, exact: true })),
+    labelKey: "erp.nav.pages",
+    subs: FOOTER_DOC_TAB_ORDER.map((key) => ({
+      href: `/erp/pages/${key}`,
+      labelKey: FOOTER_DOC_LABEL_KEYS[key] ?? key,
+      exact: true,
+    })),
   },
   {
     id: "theme",
     href: "/erp/theme",
-    label: "테마변경",
+    labelKey: "erp.nav.theme",
     subs: [
-      { href: "/erp/theme", label: "테마변경", exact: true },
-      { href: "/erp/theme/hero", label: "히어로배너", exact: true },
-      { href: "/erp/theme/popups", label: "이벤트팝업", exact: true },
-      { href: "/erp/theme/banner", label: "인덱스상단문구변경", exact: true },
-      { href: "/erp/theme/partners", label: "제휴배너", exact: true },
-      { href: "/erp/theme/channels", label: "채널URL", exact: true },
+      { href: "/erp/theme", labelKey: "erp.nav.theme", exact: true },
+      { href: "/erp/theme/hero", labelKey: "erp.nav.themeHero", exact: true },
+      { href: "/erp/theme/popups", labelKey: "erp.nav.themePopups", exact: true },
+      { href: "/erp/theme/banner", labelKey: "erp.nav.themeBanner", exact: true },
+      { href: "/erp/theme/partners", labelKey: "erp.nav.themePartners", exact: true },
+      { href: "/erp/theme/channels", labelKey: "erp.nav.themeChannels", exact: true },
+    ],
+  },
+  {
+    id: "settings",
+    href: "/erp/settings",
+    labelKey: "erp.nav.settings",
+    subs: [
+      { href: "/erp/settings", labelKey: "erp.nav.settings", exact: true },
+      { href: "/erp/settings/permissions", labelKey: "erp.nav.permissions", exact: true },
     ],
   },
 ];
@@ -137,6 +151,9 @@ export function isErpModuleActive(module: ErpModule, path: string) {
   }
   if (module.id === "orders") {
     return path === "/erp/orders" || path.startsWith("/erp/orders/");
+  }
+  if (module.id === "settings") {
+    return path === "/erp/settings" || path.startsWith("/erp/settings/");
   }
   return linkActive({ href: module.href, exact: module.exact }, path);
 }

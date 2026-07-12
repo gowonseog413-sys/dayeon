@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
@@ -12,7 +13,7 @@ import {
   type EventPopupStatus,
 } from "@/lib/event-popup-schedule";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import type { EventPopup } from "@/lib/types";
 
 type FormState = {
@@ -47,12 +48,12 @@ function emptyForm(): FormState {
   };
 }
 
-const STATUS_LABEL: Record<EventPopupStatus, string> = {
-  active: "노출 중",
-  scheduled: "예약됨",
-  expired: "기간 종료",
-  disabled: "비활성",
-  invalid: "설정 오류",
+const STATUS_KEY: Record<EventPopupStatus, string> = {
+  active: "erp.theme.popups.status.active",
+  scheduled: "erp.theme.popups.status.scheduled",
+  expired: "erp.theme.popups.status.expired",
+  disabled: "erp.theme.popups.status.disabled",
+  invalid: "erp.theme.popups.status.invalid",
 };
 
 const STATUS_CLASS: Record<EventPopupStatus, string> = {
@@ -64,6 +65,8 @@ const STATUS_CLASS: Record<EventPopupStatus, string> = {
 };
 
 export default function ErpEventPopupsPage() {
+  const { t, tFmt, locale } = useI18n();
+  const inputLang = locale === "id" ? "id" : locale === "en" ? "en" : "ko";
   const [popups, setPopups] = useState<EventPopup[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -74,7 +77,7 @@ export default function ErpEventPopupsPage() {
   const load = useCallback(async () => {
     try {
       const data = await api<{ popups: EventPopup[] }>("/api/admin/event-popups", {
-        token: getToken(),
+        token: getErpToken(),
       });
       setPopups(data.popups);
     } catch {
@@ -114,7 +117,7 @@ export default function ErpEventPopupsPage() {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
-    const token = getToken();
+    const token = getErpToken();
     try {
       if (editingId) {
         await api(`/api/admin/event-popups/${editingId}`, {
@@ -122,44 +125,47 @@ export default function ErpEventPopupsPage() {
           token,
           body: JSON.stringify(form),
         });
-        showSaveSuccess({ message: "저장되었습니다", subMessage: "이벤트 팝업이 수정되었습니다." });
+        showSaveSuccess({
+          message: t("erp.save.title"),
+          subMessage: t("erp.theme.popups.savedEditSub"),
+        });
       } else {
         await api("/api/admin/event-popups", {
           method: "POST",
           token,
           body: JSON.stringify(form),
         });
-        showSaveSuccess({ message: "등록되었습니다", subMessage: "이벤트 팝업이 쇼핑몰에 노출됩니다." });
+        showSaveSuccess({
+          message: t("erp.common.registeredTitle"),
+          subMessage: t("erp.theme.popups.savedNewSub"),
+        });
       }
       cancelEdit();
       await load();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.theme.popups.saveFailed"));
     } finally {
       setLoading(false);
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("이 팝업을 삭제할까요?")) return;
+    if (!confirm(t("erp.theme.popups.confirmDelete"))) return;
     try {
       await api(`/api/admin/event-popups/${id}`, {
         method: "DELETE",
-        token: getToken(),
+        token: getErpToken(),
       });
       if (editingId === id) cancelEdit();
-      showSaveSuccess({ message: "삭제되었습니다" });
+      showSaveSuccess({ message: t("erp.common.deletedTitle") });
       await load();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.theme.popups.deleteFailed"));
     }
   }
 
   return (
-    <ErpPageShell
-      title="이벤트 팝업"
-      description="쇼핑몰 우측 상단에 뜨는 안내 팝업입니다. 노출 시간은 로컬·한국 접속 시 KST, 인도네시아 IP 접속 시 WIB 기준으로 적용됩니다."
-    >
+    <ErpPageShell titleKey="erp.nav.themePopups" descriptionKey="erp.theme.popups.description">
       {errorMsg ? (
         <p className="mb-2 rounded-lg bg-red-50 px-3 py-1 text-sm text-red-700">{errorMsg}</p>
       ) : null}
@@ -167,50 +173,52 @@ export default function ErpEventPopupsPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <form onSubmit={save} className="space-y-3 rounded-xl border bg-white p-4">
           <p className="text-sm font-bold text-gray-900">
-            {editingId ? "팝업 수정" : "새 팝업 등록"}
+            {editingId ? t("erp.theme.popups.editTitle") : t("erp.theme.popups.newTitle")}
           </p>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-gray-700">제목*</span>
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.theme.popups.titleLabel")}</span>
             <input
               required
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="w-full rounded border px-3 py-2 text-sm"
-              placeholder="예: 여름 시즌 오픈 이벤트"
+              placeholder={t("erp.theme.popups.titlePlaceholder")}
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-gray-700">안내 내용*</span>
+            <span className="mb-1 block font-medium text-gray-700">{t("erp.theme.popups.contentLabel")}</span>
             <textarea
               required
               rows={6}
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
               className="w-full rounded border px-3 py-2 text-sm leading-relaxed"
-              placeholder="고객에게 보여줄 안내 문구를 입력하세요."
+              placeholder={t("erp.theme.popups.contentPlaceholder")}
             />
           </label>
 
           <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/80 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-gray-700">노출 시작 (예약)</p>
+              <p className="text-xs font-semibold text-gray-700">{t("erp.theme.popups.startLabel")}</p>
               <button
                 type="button"
                 onClick={setQuickStartNow}
                 className="text-[11px] text-[var(--pink-accent)] hover:underline"
               >
-                지금부터
+                {t("erp.theme.popups.startNow")}
               </button>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <input
                 type="date"
+                lang={inputLang}
                 value={form.startDate}
                 onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                 className="w-full rounded border bg-white px-3 py-2 text-sm"
               />
               <input
                 type="time"
+                lang={inputLang}
                 value={form.startTime}
                 onChange={(e) => setForm({ ...form, startTime: e.target.value })}
                 className="w-full rounded border bg-white px-3 py-2 text-sm"
@@ -219,16 +227,18 @@ export default function ErpEventPopupsPage() {
           </div>
 
           <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/80 p-3">
-            <p className="mb-2 text-xs font-semibold text-gray-700">노출 종료</p>
+            <p className="mb-2 text-xs font-semibold text-gray-700">{t("erp.theme.popups.endLabel")}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               <input
                 type="date"
+                lang={inputLang}
                 value={form.endDate}
                 onChange={(e) => setForm({ ...form, endDate: e.target.value })}
                 className="w-full rounded border bg-white px-3 py-2 text-sm"
               />
               <input
                 type="time"
+                lang={inputLang}
                 value={form.endTime}
                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
                 className="w-full rounded border bg-white px-3 py-2 text-sm"
@@ -242,7 +252,7 @@ export default function ErpEventPopupsPage() {
               checked={form.enabled}
               onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
             />
-            노출 사용
+            {t("erp.theme.popups.enabled")}
           </label>
           <ErpFormActions className="pt-1">
             {editingId && (
@@ -251,7 +261,7 @@ export default function ErpEventPopupsPage() {
                 onClick={cancelEdit}
                 className="rounded-full border px-5 py-2 text-sm text-gray-600"
               >
-                취소
+                {t("erp.common.cancel")}
               </button>
             )}
             <button
@@ -259,15 +269,21 @@ export default function ErpEventPopupsPage() {
               disabled={loading}
               className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {loading ? "저장 중..." : editingId ? "수정 저장" : "등록"}
+              {loading
+                ? t("erp.common.saving")
+                : editingId
+                  ? t("erp.theme.popups.saveEdit")
+                  : t("erp.common.register")}
             </button>
           </ErpFormActions>
         </form>
 
         <div className="rounded-xl border bg-white p-4">
-          <p className="mb-3 text-sm font-bold text-gray-900">등록된 팝업 ({popups.length})</p>
+          <p className="mb-3 text-sm font-bold text-gray-900">
+            {tFmt("erp.theme.popups.listTitle", { count: popups.length })}
+          </p>
           {popups.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-500">등록된 팝업이 없습니다.</p>
+            <p className="py-8 text-center text-sm text-gray-500">{t("erp.theme.popups.noPopups")}</p>
           ) : (
             <ul className="space-y-3">
               {popups.map((popup) => {
@@ -282,13 +298,13 @@ export default function ErpEventPopupsPage() {
                         <p className="font-semibold text-gray-900">{popup.title}</p>
                         <p className="mt-1 text-xs text-gray-500">
                           {formatEventSchedule(popup, EVENT_POPUP_ADMIN_TZ)} · ERP{" "}
-                          {timezoneLabel(EVENT_POPUP_ADMIN_TZ)}
+                          {timezoneLabel(EVENT_POPUP_ADMIN_TZ, locale)}
                         </p>
                       </div>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_CLASS[status]}`}
                       >
-                        {STATUS_LABEL[status]}
+                        {t(STATUS_KEY[status])}
                       </span>
                     </div>
                     <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-gray-600">
@@ -300,14 +316,14 @@ export default function ErpEventPopupsPage() {
                         onClick={() => startEdit(popup)}
                         className="rounded border px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
                       >
-                        수정
+                        {t("erp.common.edit")}
                       </button>
                       <button
                         type="button"
                         onClick={() => remove(popup.id)}
                         className="rounded border border-red-200 px-3 py-1 text-xs text-red-600 hover:bg-red-50"
                       >
-                        삭제
+                        {t("erp.common.delete")}
                       </button>
                     </ErpFormActions>
                   </li>

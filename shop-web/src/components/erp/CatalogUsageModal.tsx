@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/components/I18nProvider";
 import type { CatalogUsageProduct } from "@/lib/product-catalog-store";
 
 type Props = {
@@ -21,9 +22,11 @@ export function CatalogUsageModal({
   onConfirm,
   onCancel,
 }: Props) {
+  const { t, tFmt } = useI18n();
+
   if (!open) return null;
 
-  const verb = action === "delete" ? "삭제" : "수정";
+  const verb = action === "delete" ? t("erp.common.delete") : t("erp.common.edit");
 
   return (
     <div
@@ -37,10 +40,9 @@ export function CatalogUsageModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-b bg-amber-50 px-5 py-4">
-          <h3 className="text-base font-semibold text-amber-900">등록 상품 확인</h3>
+          <h3 className="text-base font-semibold text-amber-900">{t("erp.catalog.confirmTitle")}</h3>
           <p className="mt-2 text-sm text-amber-800">
-            현재 <strong>{count}개</strong> 상품이 이 {typeLabel}로 등록되어 있습니다.
-            {verb} 후 상품목록에서 카테고리·섹션을 확인해 주세요.
+            {tFmt("erp.catalog.confirmBody", { count, typeLabel, verb })}
           </p>
         </div>
 
@@ -51,7 +53,9 @@ export function CatalogUsageModal({
             </li>
           ))}
           {products.length > 20 && (
-            <li className="py-1.5 text-xs text-gray-400">외 {products.length - 20}건…</li>
+            <li className="py-1.5 text-xs text-gray-400">
+              {tFmt("erp.catalog.moreItems", { count: products.length - 20 })}
+            </li>
           )}
         </ul>
 
@@ -61,14 +65,14 @@ export function CatalogUsageModal({
             onClick={onCancel}
             className="flex-1 rounded-lg border py-2 text-sm text-gray-700 hover:bg-gray-50"
           >
-            취소
+            {t("erp.common.cancel")}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             className="flex-1 rounded-lg bg-gray-800 py-2 text-sm font-medium text-white hover:bg-gray-900"
           >
-            {verb} 진행
+            {tFmt("erp.catalog.proceed", { verb })}
           </button>
         </div>
       </div>

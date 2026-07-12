@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { api, formatRp } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
@@ -25,6 +26,7 @@ function itemImage(item: Order["items"][number]) {
 function ProfileOrdersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, tFmt } = useI18n();
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -78,25 +80,25 @@ function ProfileOrdersContent() {
   }
 
   if (loading) {
-    return <p className="text-sm text-gray-500">불러오는 중…</p>;
+    return <p className="text-sm text-gray-500">{t("common.loading")}</p>;
   }
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold text-[var(--pink-deep)]">주문 내역</h1>
+      <h1 className="mb-2 text-2xl font-semibold text-[var(--pink-deep)]">{t("profile.title.orders")}</h1>
       <p className="mb-6 text-xs text-gray-500">
-        최신순 · No. 역순 · {SHOP_ORDER_PAGE_SIZE}건씩 (PG 연동 전 테스트 모드)
+        {tFmt("profile.orders.subtitle", { size: SHOP_ORDER_PAGE_SIZE })}
       </p>
 
       {orders.length === 0 ? (
         <div className="text-center text-gray-600">
-          <p className="text-lg font-medium">아직 주문이 없습니다</p>
-          <p className="mt-2 text-sm">주문하시면 주문 내역이 여기에서 확인됩니다.</p>
+          <p className="text-lg font-medium">{t("profile.orders.empty")}</p>
+          <p className="mt-2 text-sm">{t("profile.orders.emptyHint")}</p>
           <Link
             href="/"
             className="mt-6 inline-block rounded-full border border-gray-300 px-6 py-2 text-sm hover:border-[var(--pink-accent)]"
           >
-            쇼핑으로 돌아가기
+            {t("profile.backToShop")}
           </Link>
         </div>
       ) : (
@@ -160,14 +162,14 @@ function ProfileOrdersContent() {
                     <div className="mt-3 space-y-0.5 border-t border-gray-50 pt-3 text-xs text-gray-500">
                       {o.subtotal != null && (
                         <p className="flex justify-between">
-                          <span>소계</span>
+                          <span>{t("profile.orders.subtotal")}</span>
                           <span>{formatRp(o.subtotal)}</span>
                         </p>
                       )}
                       {o.shippingFee != null && (
                         <p className="flex justify-between">
-                          <span>배송비</span>
-                          <span>{formatOrderShippingLabel(o.shippingFee)}</span>
+                          <span>{t("profile.orders.shipping")}</span>
+                          <span>{formatOrderShippingLabel(o.shippingFee, t("product.shippingFree"))}</span>
                         </p>
                       )}
                     </div>
@@ -178,7 +180,7 @@ function ProfileOrdersContent() {
                       href={`/order/${o.id}?from=orders${page > 1 ? `&page=${page}` : ""}`}
                       className="text-sm text-[var(--pink-accent)] hover:underline"
                     >
-                      주문 상세
+                      {t("profile.orders.detail")}
                     </Link>
                     {canCancelOrder(o) && (
                       <button
@@ -187,7 +189,7 @@ function ProfileOrdersContent() {
                         onClick={() => cancelOrder(o.id, o.orderNumber)}
                         className="text-sm text-red-600 hover:underline disabled:opacity-50"
                       >
-                        {cancelling === o.id ? "취소 중…" : "발송 전 취소"}
+                        {cancelling === o.id ? t("profile.orders.cancelling") : t("profile.orders.cancel")}
                       </button>
                     )}
                   </div>
@@ -204,8 +206,9 @@ function ProfileOrdersContent() {
 }
 
 export default function ProfileOrdersPage() {
+  const { t } = useI18n();
   return (
-    <Suspense fallback={<p className="text-sm text-gray-500">불러오는 중…</p>}>
+    <Suspense fallback={<p className="text-sm text-gray-500">{t("common.loading")}</p>}>
       <ProfileOrdersContent />
     </Suspense>
   );

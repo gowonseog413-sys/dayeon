@@ -2,13 +2,14 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { TierBadge } from "@/components/TierBadge";
 import { ErpContentTabs } from "@/components/erp/ErpContentTabs";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { api, formatRp } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import { TIER_ORDER } from "@/lib/tier";
 
 type PointsSettings = {
@@ -28,10 +29,6 @@ type SignupBonus = {
   welcomeMessage: string;
 };
 
-const DEFAULT_WELCOME_MESSAGE = `가입해 주셔서 감사합니다.
-감사의 마음으로 {points}포인트를 적립해 드렸습니다.
-언제든지 현금처럼 사용 가능합니다.`;
-
 type PointsMember = {
   id: string;
   name: string;
@@ -45,25 +42,27 @@ type PointsMember = {
 
 const TIER_FIELD: Record<
   string,
-  { threshold: keyof PointsSettings; rate: keyof PointsSettings; label: string }
+  { threshold: keyof PointsSettings; rate: keyof PointsSettings; tierKey: string }
 > = {
-  silver: { threshold: "tierSilver", rate: "earnRateSilver", label: "실버" },
-  gold: { threshold: "tierGold", rate: "earnRateGold", label: "골드" },
-  diamond: { threshold: "tierDiamond", rate: "earnRateDiamond", label: "다이아몬드" },
+  silver: { threshold: "tierSilver", rate: "earnRateSilver", tierKey: "tier.silver" },
+  gold: { threshold: "tierGold", rate: "earnRateGold", tierKey: "tier.gold" },
+  diamond: { threshold: "tierDiamond", rate: "earnRateDiamond", tierKey: "tier.diamond" },
 };
 
-const POINTS_TABS = [
-  { id: "policy", label: "포인트/적립금" },
-  { id: "members", label: "포인트회원" },
+const POINTS_TAB_KEYS = [
+  { id: "policy", labelKey: "erp.users.points.tabPolicy" },
+  { id: "members", labelKey: "erp.users.points.tabMembers" },
 ] as const;
 
-type PointsTabId = (typeof POINTS_TABS)[number]["id"];
+type PointsTabId = (typeof POINTS_TAB_KEYS)[number]["id"];
 
 function isPointsTabId(value: string | null): value is PointsTabId {
   return value === "policy" || value === "members";
 }
 
 function ErpUsersPointsContent() {
+  const { t, tFmt } = useI18n();
+  const defaultWelcomeMessage = t("erp.users.points.defaultWelcomeMessage");
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -82,7 +81,7 @@ function ErpUsersPointsContent() {
     enabled: true,
     points: 100,
     welcomeMessageEnabled: true,
-    welcomeMessage: DEFAULT_WELCOME_MESSAGE,
+    welcomeMessage: defaultWelcomeMessage,
   });
   const [members, setMembers] = useState<PointsMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +92,13 @@ function ErpUsersPointsContent() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPoints, setEditPoints] = useState("");
 
+  const pointsTabs = POINTS_TAB_KEYS.map((tab) => ({
+    id: tab.id,
+    label: t(tab.labelKey),
+  }));
+  const statusLabel = (on: boolean) =>
+    on ? t("erp.users.points.statusOn") : t("erp.users.points.statusOff");
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -100,11 +106,11 @@ function ErpUsersPointsContent() {
         settings: PointsSettings;
         signupBonus: SignupBonus;
         members: PointsMember[];
-      }>("/api/admin/settings/points", { token: getToken() });
+      }>("/api/admin/settings/points", { token: getErpToken() });
       setSettings(data.settings);
       setSignupBonus({
         ...data.signupBonus,
-        welcomeMessage: data.signupBonus.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
+        welcomeMessage: data.signupBonus.welcomeMessage || defaultWelcomeMessage,
       });
       setMembers(data.members);
     } catch {
@@ -112,7 +118,7 @@ function ErpUsersPointsContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [defaultWelcomeMessage]);
 
   useEffect(() => {
     load();
@@ -137,14 +143,14 @@ function ErpUsersPointsContent() {
         members: PointsMember[];
       }>("/api/admin/settings/points", {
         method: "PATCH",
-        token: getToken(),
+        token: getErpToken(),
         body: JSON.stringify(settings),
       });
       setSettings(data.settings);
       setMembers(data.members);
-      showSaveSuccess({ subMessage: "등급·적립 정책이 반영되었습니다." });
+      showSaveSuccess({ subMessage: t("erp.users.points.policySaved") });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -164,43 +170,49 @@ function ErpUsersPointsContent() {
         members: PointsMember[];
       }>("/api/admin/settings/points", {
         method: "PATCH",
-        token: getToken(),
+        token: getErpToken(),
         body: JSON.stringify({ signupBonus: next }),
       });
       setSignupBonus({
         ...data.signupBonus,
-        welcomeMessage: data.signupBonus.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
+        welcomeMessage: data.signupBonus.welcomeMessage || defaultWelcomeMessage,
       });
       const welcomeNote = data.signupBonus.welcomeMessageEnabled
-        ? " · 환영 편지 발송 ON"
-        : " · 환영 편지 발송 OFF";
+        ? t("erp.users.points.welcomeOn")
+        : t("erp.users.points.welcomeOff");
       showSaveSuccess({
         subMessage: data.signupBonus.enabled
-          ? `가입 포인트 ${data.signupBonus.points.toLocaleString("ko-KR")}P 설정${welcomeNote}`
-          : `가입 포인트 지급 중지${welcomeNote}`,
+          ? tFmt("erp.users.points.signupSavedEnabled", {
+              points: data.signupBonus.points.toLocaleString("ko-KR"),
+              welcomeNote,
+            })
+          : tFmt("erp.users.points.signupSavedDisabled", { welcomeNote }),
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setSavingBonus(false);
     }
   }
 
   async function deleteSignupBonus() {
-    if (!confirm("가입 포인트 설정을 초기화(진행안함)할까요?")) return;
+    if (!confirm(t("erp.users.points.confirmReset"))) return;
     setSavingBonus(true);
     try {
       const data = await api<{ signupBonus: SignupBonus }>(
         "/api/admin/settings/signup-bonus",
-        { method: "DELETE", token: getToken() },
+        { method: "DELETE", token: getErpToken() },
       );
       setSignupBonus({
         ...data.signupBonus,
-        welcomeMessage: data.signupBonus.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
+        welcomeMessage: data.signupBonus.welcomeMessage || defaultWelcomeMessage,
       });
-      showSaveSuccess({ message: "초기화되었습니다", subMessage: "가입 포인트 설정이 기본값으로 돌아갔습니다." });
+      showSaveSuccess({
+        message: t("erp.common.resetTitle"),
+        subMessage: t("erp.users.points.resetMsg"),
+      });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.deleteFailed"));
     } finally {
       setSavingBonus(false);
     }
@@ -211,7 +223,7 @@ function ErpUsersPointsContent() {
     try {
       const data = await api<{ user: PointsMember }>(`/api/admin/users/${id}/points`, {
         method: "PATCH",
-        token: getToken(),
+        token: getErpToken(),
         body: JSON.stringify({ points }),
       });
       setMembers((prev) =>
@@ -221,24 +233,29 @@ function ErpUsersPointsContent() {
       );
       setEditingId(null);
       showSaveSuccess({
-        subMessage: `${data.user.name}님 적립금 ${formatRp(data.user.points)} 반영`,
+        subMessage: tFmt("erp.users.points.memberPointsSaved", {
+          name: data.user.name,
+          amount: formatRp(data.user.points),
+        }),
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "적립금 수정 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.users.points.editPointsFailed"));
     }
   }
 
   if (loading) {
-    return <ErpPageShell title="포인트/적립금">불러오는 중…</ErpPageShell>;
+    return (
+      <ErpPageShell titleKey="erp.nav.usersPoints">{t("erp.common.loading")}</ErpPageShell>
+    );
   }
 
   return (
     <ErpPageShell
-      title="포인트/적립금"
-      description="구매 등급 기준·등급별 적립률·가입 포인트를 설정하고 회원별 적립금을 관리합니다."
+      titleKey="erp.nav.usersPoints"
+      descriptionKey="erp.users.points.description"
     >
       <ErpContentTabs
-        tabs={[...POINTS_TABS]}
+        tabs={pointsTabs}
         active={activeTab}
         onChange={(id) => setTab(id as PointsTabId)}
         className="mb-2"
@@ -249,13 +266,11 @@ function ErpUsersPointsContent() {
       {activeTab === "policy" ? (
         <div className="grid gap-3 lg:grid-cols-2">
           <form onSubmit={saveSettings} className="rounded-xl border bg-white p-4">
-            <p className="mb-3 text-sm font-semibold text-gray-800">등급·적립 정책</p>
-            <p className="mb-3 text-xs text-gray-500">
-              브론즈(기본) → 실버 → 골드 → 다이아몬드. 등급은 누적 구매금액 기준입니다.
-            </p>
+            <p className="mb-3 text-sm font-semibold text-gray-800">{t("erp.users.points.policyTitle")}</p>
+            <p className="mb-3 text-xs text-gray-500">{t("erp.users.points.policyDesc")}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-sm sm:col-span-2">
-                <span className="mb-1 block text-gray-600">브론즈 구매 적립률 (%)</span>
+                <span className="mb-1 block text-gray-600">{t("erp.users.points.bronzeRate")}</span>
                 <input
                   type="number"
                   min={0}
@@ -272,10 +287,12 @@ function ErpUsersPointsContent() {
                 const f = TIER_FIELD[tier];
                 return (
                   <div key={tier} className="rounded-lg border border-gray-100 p-3 sm:col-span-2">
-                    <p className="mb-2 text-xs font-semibold text-gray-700">{f.label} 등급</p>
+                    <p className="mb-2 text-xs font-semibold text-gray-700">
+                      {tFmt("erp.users.points.tierGrade", { tier: t(f.tierKey) })}
+                    </p>
                     <div className="grid gap-2 sm:grid-cols-2">
                       <label className="text-sm">
-                        <span className="mb-1 block text-gray-600">누적 구매금액 (Rp 이상)</span>
+                        <span className="mb-1 block text-gray-600">{t("erp.users.points.threshold")}</span>
                         <input
                           type="number"
                           min={0}
@@ -290,7 +307,7 @@ function ErpUsersPointsContent() {
                         />
                       </label>
                       <label className="text-sm">
-                        <span className="mb-1 block text-gray-600">구매 적립률 (%)</span>
+                        <span className="mb-1 block text-gray-600">{t("erp.users.points.earnRate")}</span>
                         <input
                           type="number"
                           min={0}
@@ -314,26 +331,24 @@ function ErpUsersPointsContent() {
                 disabled={saving}
                 className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white disabled:opacity-50"
               >
-                {saving ? "저장 중…" : "정책 저장"}
+                {saving ? t("erp.common.saving") : t("erp.users.points.savePolicy")}
               </button>
             </ErpFormActions>
           </form>
 
           <div className="rounded-xl border bg-white p-4">
-            <p className="mb-3 text-sm font-semibold text-gray-800">가입 포인트</p>
-            <p className="mb-3 text-xs text-gray-500">
-              신규 회원 가입 시 브론즈 등급으로 시작하며, 설정 시 포인트를 지급합니다.
-            </p>
+            <p className="mb-3 text-sm font-semibold text-gray-800">{t("erp.users.points.signupTitle")}</p>
+            <p className="mb-3 text-xs text-gray-500">{t("erp.users.points.signupDesc")}</p>
             <label className="mb-3 flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={signupBonus.enabled}
                 onChange={(e) => setSignupBonus({ ...signupBonus, enabled: e.target.checked })}
               />
-              가입 포인트 지급 {signupBonus.enabled ? "진행함" : "진행안함"}
+              {tFmt("erp.users.points.signupEnabled", { status: statusLabel(signupBonus.enabled) })}
             </label>
             <label className="mb-4 block text-sm">
-              <span className="mb-1 block text-gray-600">지급 포인트 (P)</span>
+              <span className="mb-1 block text-gray-600">{t("erp.users.points.signupPoints")}</span>
               <input
                 type="number"
                 min={0}
@@ -346,10 +361,8 @@ function ErpUsersPointsContent() {
               />
             </label>
             <div className="mb-4 border-t border-gray-100 pt-4">
-              <p className="mb-2 text-sm font-semibold text-gray-800">가입 환영 편지</p>
-              <p className="mb-3 text-xs text-gray-500">
-                신규 가입 시 회원 편지함으로 자동 발송됩니다. {"{points}"}, {"{name}"} 치환 가능.
-              </p>
+              <p className="mb-2 text-sm font-semibold text-gray-800">{t("erp.users.points.welcomeLetterTitle")}</p>
+              <p className="mb-3 text-xs text-gray-500">{t("erp.users.points.welcomeLetterDesc")}</p>
               <label className="mb-3 flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -358,10 +371,12 @@ function ErpUsersPointsContent() {
                     setSignupBonus({ ...signupBonus, welcomeMessageEnabled: e.target.checked })
                   }
                 />
-                가입 환영 편지 발송 {signupBonus.welcomeMessageEnabled ? "진행함" : "진행안함"}
+                {tFmt("erp.users.points.welcomeLetterEnabled", {
+                  status: statusLabel(signupBonus.welcomeMessageEnabled),
+                })}
               </label>
               <label className="block text-sm">
-                <span className="mb-1 block text-gray-600">편지 내용</span>
+                <span className="mb-1 block text-gray-600">{t("erp.users.points.letterContent")}</span>
                 <textarea
                   rows={5}
                   disabled={!signupBonus.welcomeMessageEnabled}
@@ -369,7 +384,7 @@ function ErpUsersPointsContent() {
                   onChange={(e) =>
                     setSignupBonus({ ...signupBonus, welcomeMessage: e.target.value })
                   }
-                  placeholder={DEFAULT_WELCOME_MESSAGE}
+                  placeholder={defaultWelcomeMessage}
                   className="w-full resize-y rounded border px-3 py-2 text-sm leading-relaxed disabled:bg-gray-50"
                 />
               </label>
@@ -382,7 +397,7 @@ function ErpUsersPointsContent() {
                 onClick={() => saveSignupBonus(false)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
               >
-                진행안함
+                {t("erp.users.points.skip")}
               </button>
               <button
                 type="button"
@@ -390,7 +405,7 @@ function ErpUsersPointsContent() {
                 onClick={deleteSignupBonus}
                 className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
               >
-                삭제
+                {t("erp.common.delete")}
               </button>
               <button
                 type="button"
@@ -398,7 +413,7 @@ function ErpUsersPointsContent() {
                 onClick={() => saveSignupBonus()}
                 className="rounded-lg bg-[#1e293b] px-4 py-2 text-sm text-white disabled:opacity-50"
               >
-                {savingBonus ? "저장 중…" : "수정 저장"}
+                {savingBonus ? t("erp.common.saving") : t("erp.users.points.saveChanges")}
               </button>
             </ErpFormActions>
           </div>
@@ -408,20 +423,20 @@ function ErpUsersPointsContent() {
           <table className="text-left text-xs">
             <thead className="border-b bg-gray-50 text-gray-500">
               <tr>
-                <th className="whitespace-nowrap px-2 py-1.5">이름</th>
-                <th className="whitespace-nowrap px-2 py-1.5">메일</th>
-                <th className="whitespace-nowrap px-2 py-1.5 text-right">누적구매</th>
-                <th className="whitespace-nowrap px-2 py-1.5 text-center">등급</th>
-                <th className="whitespace-nowrap px-2 py-1.5 text-right">적립금액</th>
-                <th className="whitespace-nowrap px-2 py-1.5 text-right">사용금액</th>
-                <th className="whitespace-nowrap px-2 py-1.5 text-center">수정</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.col.name")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.col.email")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-right">{t("erp.users.col.totalPurchaseShort")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-center">{t("erp.users.col.tier")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-right">{t("erp.users.col.points")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-right">{t("erp.users.col.pointsUsed")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-center">{t("erp.users.col.edit")}</th>
               </tr>
             </thead>
             <tbody>
               {members.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-2 py-4 text-center text-gray-400">
-                    등록된 회원이 없습니다.
+                    {t("erp.users.list.noMembers")}
                   </td>
                 </tr>
               ) : (
@@ -467,14 +482,14 @@ function ErpUsersPointsContent() {
                             onClick={() => saveMemberPoints(m.id)}
                             className="rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700"
                           >
-                            저장
+                            {t("erp.common.save")}
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingId(null)}
                             className="rounded border px-2 py-0.5"
                           >
-                            취소
+                            {t("erp.common.cancel")}
                           </button>
                         </div>
                       ) : (
@@ -486,7 +501,7 @@ function ErpUsersPointsContent() {
                           }}
                           className="rounded border px-2 py-0.5 text-gray-600 hover:bg-gray-50"
                         >
-                          수정
+                          {t("erp.common.edit")}
                         </button>
                       )}
                     </td>
@@ -501,9 +516,16 @@ function ErpUsersPointsContent() {
   );
 }
 
+function PointsLoadingFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.usersPoints">{t("erp.common.loading")}</ErpPageShell>
+  );
+}
+
 export default function ErpUsersPointsPage() {
   return (
-    <Suspense fallback={<ErpPageShell title="포인트/적립금">불러오는 중…</ErpPageShell>}>
+    <Suspense fallback={<PointsLoadingFallback />}>
       <ErpUsersPointsContent />
     </Suspense>
   );

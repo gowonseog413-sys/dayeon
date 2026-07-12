@@ -70,6 +70,25 @@ function usageBlock(level, products, action) {
   };
 }
 
+function mergeLabels(body, prev) {
+  const labels = { ...(prev?.labels || {}) };
+  if (body?.labels && typeof body.labels === "object") {
+    for (const loc of ["ko", "en", "id"]) {
+      const v = String(body.labels[loc] ?? "").trim();
+      if (v) labels[loc] = v;
+    }
+  }
+  const ko = String(body?.label ?? prev?.label ?? labels.ko ?? "").trim();
+  if (ko) labels.ko = ko;
+  const out = Object.fromEntries(Object.entries(labels).filter(([, v]) => v));
+  return Object.keys(out).length ? out : undefined;
+}
+
+function withLabels(node, body) {
+  const labels = mergeLabels(body, node);
+  return labels ? { ...node, labels } : node;
+}
+
 function makeNode(body, list) {
   const label = String(body?.label || "").trim();
   if (!label) return { error: "LABEL_REQUIRED" };
@@ -526,7 +545,7 @@ router.put("/filter-categories/:id", (req, res) => {
         if (p.category === req.params.id) p.category = newId;
       });
     }
-    list[r.idx] = { ...r.node, id: newId, label: r.label };
+    list[r.idx] = withLabels({ ...r.node, id: newId, label: r.label }, req.body);
     result = { item: list[r.idx] };
   });
 
@@ -582,7 +601,10 @@ router.post("/filter-options/:fieldId", (req, res) => {
       const list = getFilterFieldOptions(d, fieldId);
       if (!list) throw Object.assign(new Error("INVALID_FIELD"), { code: "INVALID_FIELD" });
       if (list.some((s) => s.id === id)) throw Object.assign(new Error("DUPLICATE"), { code: "DUPLICATE" });
-      created = { id, label, sortOrder: Number(req.body?.sortOrder) || list.length + 1 };
+      created = withLabels(
+        { id, label, sortOrder: Number(req.body?.sortOrder) || list.length + 1 },
+        req.body,
+      );
       list.push(created);
     });
   } catch (e) {
@@ -630,7 +652,7 @@ router.put("/filter-options/:fieldId/:optionId", (req, res) => {
     } else if (fieldId === "brand" && r.label !== list[r.idx].label) {
       migrateFilterOptionId(d, fieldId, req.params.optionId, newId, r.label);
     }
-    list[r.idx] = { ...r.node, id: newId, label: r.label };
+    list[r.idx] = withLabels({ ...r.node, id: newId, label: r.label }, req.body);
     result = { item: list[r.idx] };
   });
 

@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import {
   THEME_PREVIEW,
-  THEME_LABELS,
   normalizeSiteTheme,
   type SiteTheme,
   type ThemeMotionMap,
@@ -14,17 +14,21 @@ import {
 import { normalizeSiteThemeSettings } from "@/lib/theme-settings";
 import { publishThemeSettingsUpdate } from "@/lib/theme-sync";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 
-const THEMES: { id: SiteTheme; order: number; desc: string }[] = [
-  { id: "pink", order: 1, desc: "아기자기 핑크, 다연 기본 스타일" },
-  { id: "clean", order: 2, desc: "미니멀·모노톤, 깔끔한 쇼핑 경험" },
-  { id: "indonesia", order: 3, desc: "따뜻한 레드·크림 톤, 트로피컬 무드" },
-  { id: "dark", order: 4, desc: "블랙·골드 프리미엄, 고급 렌즈 라인" },
-  { id: "aqua", order: 5, desc: "아쿠아·블루 클린, 촉촉함·신뢰감" },
+const THEMES: { id: SiteTheme; order: number; descKey: string }[] = [
+  { id: "pink", order: 1, descKey: "erp.theme.desc.pink" },
+  { id: "clean", order: 2, descKey: "erp.theme.desc.clean" },
+  { id: "indonesia", order: 3, descKey: "erp.theme.desc.indonesia" },
+  { id: "dark", order: 4, descKey: "erp.theme.desc.dark" },
+  { id: "aqua", order: 5, descKey: "erp.theme.desc.aqua" },
 ];
 
 const CARD_MIN_H = "min-h-[7.75rem]";
+
+function themeNameKey(id: SiteTheme) {
+  return `erp.theme.name.${id}` as const;
+}
 
 function MotionToggle({
   enabled,
@@ -35,6 +39,7 @@ function MotionToggle({
   disabled?: boolean;
   onChange: (next: boolean) => void;
 }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -59,12 +64,13 @@ function MotionToggle({
           }`}
         />
       </span>
-      모션 {enabled ? "ON" : "OFF"}
+      {t("erp.theme.motion")} {enabled ? t("erp.theme.motionOn") : t("erp.theme.motionOff")}
     </button>
   );
 }
 
 export default function ErpThemePage() {
+  const { t, tFmt } = useI18n();
   const [active, setActive] = useState<SiteTheme>("pink");
   const [preview, setPreview] = useState<SiteTheme>("pink");
   const [themeMotion, setThemeMotion] = useState<ThemeMotionMap>({
@@ -83,7 +89,7 @@ export default function ErpThemePage() {
     try {
       const data = await api<{ theme: SiteTheme; themeMotion: ThemeMotionMap }>(
         "/api/admin/settings/theme",
-        { token: getToken() },
+        { token: getErpToken() },
       );
       const settings = normalizeSiteThemeSettings(data);
       setActive(settings.theme);
@@ -107,7 +113,7 @@ export default function ErpThemePage() {
         "/api/admin/settings/theme",
         {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ theme }),
         },
       );
@@ -117,11 +123,11 @@ export default function ErpThemePage() {
       setThemeMotion(settings.themeMotion);
       publishThemeSettingsUpdate(settings);
       showSaveSuccess({
-        message: "적용되었습니다",
-        subMessage: `${THEME_LABELS[theme]} 테마가 쇼핑몰에 실시간 반영됩니다.`,
+        message: t("erp.theme.applied"),
+        subMessage: tFmt("erp.theme.appliedSub", { name: t(themeNameKey(theme)) }),
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "테마 적용에 실패했습니다.");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.theme.applyFailed"));
     } finally {
       setLoading(null);
     }
@@ -135,7 +141,7 @@ export default function ErpThemePage() {
         "/api/admin/settings/theme",
         {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ themeMotion: { [theme]: enabled } }),
         },
       );
@@ -143,11 +149,14 @@ export default function ErpThemePage() {
       setThemeMotion(settings.themeMotion);
       publishThemeSettingsUpdate(settings);
       showSaveSuccess({
-        message: "저장되었습니다",
-        subMessage: `${THEME_LABELS[theme]} 모션이 ${enabled ? "켜짐" : "꺼짐"} · 쇼핑몰에 실시간 반영됩니다.`,
+        message: t("erp.save.title"),
+        subMessage: tFmt("erp.theme.motionSavedSub", {
+          name: t(themeNameKey(theme)),
+          state: enabled ? t("erp.theme.motionOnState") : t("erp.theme.motionOffState"),
+        }),
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "모션 설정에 실패했습니다.");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.theme.motionFailed"));
     } finally {
       setMotionLoading(null);
     }
@@ -158,10 +167,7 @@ export default function ErpThemePage() {
   }
 
   return (
-    <ErpPageShell
-      title="테마변경"
-      description="테마를 클릭하면 오른쪽에서 미리보기만 됩니다. 「이 테마 적용」을 눌러야 쇼핑몰에 반영됩니다. 모션은 ON/OFF로 즉시 저장됩니다."
-    >
+    <ErpPageShell titleKey="erp.nav.theme" descriptionKey="erp.theme.description">
       {errorMsg ? (
         <p className="mb-2 w-full rounded-lg bg-red-50 px-3 py-1 text-sm text-red-700" aria-live="polite">
           {errorMsg}
@@ -170,48 +176,48 @@ export default function ErpThemePage() {
 
       <div className="grid gap-3 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-start">
         <div className="flex w-full shrink-0 flex-col gap-2.5 lg:max-h-[calc(100vh-12rem)] lg:w-[17.5rem] lg:overflow-y-auto lg:pr-1">
-          {THEMES.map((t) => {
-            const isActive = active === t.id;
-            const isPreview = preview === t.id;
-            const isLoading = loading === t.id;
-            const isMotionBusy = motionLoading === t.id;
+          {THEMES.map((themeItem) => {
+            const isActive = active === themeItem.id;
+            const isPreview = preview === themeItem.id;
+            const isLoading = loading === themeItem.id;
+            const isMotionBusy = motionLoading === themeItem.id;
             return (
               <div
-                key={t.id}
+                key={themeItem.id}
                 className={`flex ${CARD_MIN_H} w-full flex-col rounded-xl border-2 bg-white p-4 ${
                   isPreview ? "border-[var(--pink-accent)]" : "border-gray-200"
                 }`}
               >
                 <button
                   type="button"
-                  onClick={() => previewTheme(t.id)}
+                  onClick={() => previewTheme(themeItem.id)}
                   disabled={isLoading}
                   className="w-full flex-1 text-left disabled:opacity-60"
                 >
                   <p className="text-sm font-bold text-gray-900">
-                    {t.order}. {THEME_LABELS[t.id]}
+                    {themeItem.order}. {t(themeNameKey(themeItem.id))}
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-gray-500">{t.desc}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-gray-500">{t(themeItem.descKey)}</p>
                 </button>
                 <div className="mt-3 flex h-7 shrink-0 items-center gap-2">
                   {isActive ? (
                     <span className="inline-flex h-7 w-[7.25rem] shrink-0 items-center justify-center rounded-full bg-[var(--pink-accent)] text-[10px] font-medium text-white">
-                      적용 중
+                      {t("erp.theme.applying")}
                     </span>
                   ) : (
                     <button
                       type="button"
                       disabled={isLoading}
-                      onClick={() => applyTheme(t.id)}
+                      onClick={() => applyTheme(themeItem.id)}
                       className="inline-flex h-7 w-[7.25rem] shrink-0 items-center justify-center rounded-full border border-[var(--pink-accent)] text-[10px] font-medium text-[var(--pink-accent)] hover:bg-[var(--pink-bg)] disabled:opacity-50"
                     >
-                      {isLoading ? "적용 중..." : "이 테마 적용"}
+                      {isLoading ? t("erp.theme.applyingEllipsis") : t("erp.theme.applyThis")}
                     </button>
                   )}
                   <MotionToggle
-                    enabled={themeMotion[t.id]}
+                    enabled={themeMotion[themeItem.id]}
                     disabled={isMotionBusy}
-                    onChange={(next) => toggleMotion(t.id, next)}
+                    onChange={(next) => toggleMotion(themeItem.id, next)}
                   />
                 </div>
               </div>
@@ -221,21 +227,21 @@ export default function ErpThemePage() {
 
         <div className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs text-gray-500">
-            미리보기 — {THEME_LABELS[preview]}
-            {themeMotion[preview] ? " · 모션 ON" : " · 모션 OFF"}
+            {tFmt("erp.theme.preview", { name: t(themeNameKey(preview)) })}
+            {themeMotion[preview] ? t("erp.theme.previewMotionOn") : t("erp.theme.previewMotionOff")}
           </p>
           <div className="relative aspect-[16/10] w-full bg-gray-50">
-            {THEMES.map((t) => (
+            {THEMES.map((themeItem) => (
               <Image
-                key={t.id}
-                src={THEME_PREVIEW[t.id]}
-                alt={`${THEME_LABELS[t.id]} 미리보기`}
+                key={themeItem.id}
+                src={THEME_PREVIEW[themeItem.id]}
+                alt={tFmt("erp.theme.previewAlt", { name: t(themeNameKey(themeItem.id)) })}
                 width={1280}
                 height={800}
                 unoptimized
                 priority
                 className={`absolute inset-0 h-full w-full object-contain object-top transition-opacity duration-200 ${
-                  preview === t.id ? "opacity-100" : "pointer-events-none opacity-0"
+                  preview === themeItem.id ? "opacity-100" : "pointer-events-none opacity-0"
                 }`}
               />
             ))}

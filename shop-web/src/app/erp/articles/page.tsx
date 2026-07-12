@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpImageUpload } from "@/components/erp/ErpImageUpload";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
@@ -12,10 +13,11 @@ import {
   emptyArticleForm,
   type ArticleCategory,
 } from "@/lib/erp-articles";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import type { Article } from "@/lib/types";
 
 function ErpArticlesContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editParam = searchParams.get("edit");
@@ -28,7 +30,7 @@ function ErpArticlesContent() {
   const { showSaveSuccess } = useErpSaveSuccess();
 
   function load() {
-    const token = getToken();
+    const token = getErpToken();
     Promise.all([
       api<{ articles: Article[] }>("/api/admin/articles", { token }),
       api<{ categories: ArticleCategory[] }>("/api/admin/articles/categories", { token }),
@@ -62,7 +64,7 @@ function ErpArticlesContent() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg("");
-    const token = getToken();
+    const token = getErpToken();
     try {
       if (editingId) {
         await api(`/api/admin/articles/${editingId}`, {
@@ -70,21 +72,24 @@ function ErpArticlesContent() {
           token,
           body: JSON.stringify(form),
         });
-        showSaveSuccess({ subMessage: "게시물이 수정되었습니다." });
+        showSaveSuccess({ subMessage: t("erp.articles.saveSuccessEditSub") });
       } else {
         await api("/api/admin/articles", {
           method: "POST",
           token,
           body: JSON.stringify(form),
         });
-        showSaveSuccess({ message: "등록되었습니다", subMessage: "언론 보도가 등록되었습니다." });
+        showSaveSuccess({
+          message: t("erp.common.registeredTitle"),
+          subMessage: t("erp.articles.saveSuccessRegisterSub"),
+        });
       }
       setForm(emptyArticleForm(categories));
       setEditingId(null);
       router.replace("/erp/articles");
       load();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     }
   }
 
@@ -96,18 +101,18 @@ function ErpArticlesContent() {
 
   return (
     <ErpPageShell
-      title="언론 보도 등록"
-      description="제목·요약·본문을 등록하면 쇼핑몰 언론 보도 메뉴와 푸터에 노출됩니다."
+      titleKey="erp.nav.articlesRegister"
+      descriptionKey="erp.articles.registerDesc"
     >
       <form onSubmit={save} className="space-y-2 rounded-xl border bg-white p-4">
         <p className="text-sm font-medium text-[var(--pink-accent)]">
-          {editingId ? "게시물 수정" : "새 게시물 등록"}
+          {editingId ? t("erp.articles.formEditTitle") : t("erp.articles.formNewTitle")}
         </p>
         {errorMsg ? <p className="text-sm text-red-600">{errorMsg}</p> : null}
         <label className="block text-sm">
-          <span className="mb-1 block font-medium text-gray-700">제목*</span>
+          <span className="mb-1 block font-medium text-gray-700">{t("erp.articles.fieldTitle")}</span>
           <input
-            placeholder="게시물 제목"
+            placeholder={t("erp.articles.fieldTitlePlaceholder")}
             required
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -115,7 +120,7 @@ function ErpArticlesContent() {
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block font-medium text-gray-700">카테고리</span>
+          <span className="mb-1 block font-medium text-gray-700">{t("erp.articles.fieldCategory")}</span>
           <select
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -129,19 +134,19 @@ function ErpArticlesContent() {
           </select>
         </label>
         <ErpImageUpload
-          label="썸네일 이미지"
+          label={t("erp.articles.thumbnailLabel")}
           value={form.image}
           onChange={(url) => setForm({ ...form, image: url })}
         />
         <textarea
-          placeholder="요약 (목록에 표시)"
+          placeholder={t("erp.articles.excerptPlaceholder")}
           rows={2}
           value={form.excerpt}
           onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
           className="w-full rounded border px-3 py-2 text-sm"
         />
         <textarea
-          placeholder="본문 (상세 페이지)"
+          placeholder={t("erp.articles.contentPlaceholder")}
           rows={8}
           value={form.content}
           onChange={(e) => setForm({ ...form, content: e.target.value })}
@@ -153,7 +158,7 @@ function ErpArticlesContent() {
             checked={form.published}
             onChange={(e) => setForm({ ...form, published: e.target.checked })}
           />
-          게시 (체크 시 쇼핑몰에 공개)
+          {t("erp.articles.publishedLabel")}
         </label>
         <ErpFormActions>
           {editingId && (
@@ -162,14 +167,14 @@ function ErpArticlesContent() {
               className="rounded-full border px-5 py-2 text-sm"
               onClick={cancelEdit}
             >
-              취소
+              {t("erp.common.cancel")}
             </button>
           )}
           <button
             type="submit"
             className="rounded-full bg-[var(--pink-accent)] px-5 py-2 text-sm text-white"
           >
-            {editingId ? "수정 저장" : "등록"}
+            {editingId ? t("erp.articles.saveEdit") : t("erp.common.register")}
           </button>
         </ErpFormActions>
       </form>
@@ -177,9 +182,16 @@ function ErpArticlesContent() {
   );
 }
 
+function ErpArticlesFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.articlesRegister">{t("erp.common.loading")}</ErpPageShell>
+  );
+}
+
 export default function ErpArticlesPage() {
   return (
-    <Suspense fallback={<ErpPageShell title="기사 등록">불러오는 중…</ErpPageShell>}>
+    <Suspense fallback={<ErpArticlesFallback />}>
       <ErpArticlesContent />
     </Suspense>
   );

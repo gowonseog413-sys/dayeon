@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { ErpPagination } from "@/components/erp/ErpPagination";
 import { MemberDetailModal } from "@/components/erp/MemberDetailModal";
 import { api, formatRp } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import { downloadMembersCsv } from "@/lib/export-members-csv";
 import {
   DEFAULT_MEMBER_SORT,
@@ -87,6 +88,7 @@ function formatLastLogin(iso: string | null) {
 }
 
 export default function ErpUsersPage() {
+  const { t, tFmt } = useI18n();
   const [users, setUsers] = useState<AdminMember[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -107,7 +109,7 @@ export default function ErpUsersPage() {
         const q = memberSortQuery(sort.sortBy, sort.sortDir);
         const data = await api<AdminUsersPage>(
           `/api/admin/users?page=${p}&pageSize=${PAGE_SIZE}&${q}`,
-          { token: getToken() },
+          { token: getErpToken() },
         );
         setUsers(data.users);
         setPage(data.page);
@@ -164,10 +166,10 @@ export default function ErpUsersPage() {
 
   async function deleteSelected() {
     if (selectedCount === 0) {
-      setActionMsg("삭제할 회원을 선택해 주세요.");
+      setActionMsg(t("erp.users.list.selectToDelete"));
       return;
     }
-    if (!confirm(`선택한 ${selectedCount}명의 회원을 삭제할까요?`)) return;
+    if (!confirm(tFmt("erp.users.list.confirmDelete", { count: selectedCount }))) return;
 
     setDeleting(true);
     setActionMsg("");
@@ -176,18 +178,18 @@ export default function ErpUsersPage() {
         "/api/admin/users/bulk-delete",
         {
           method: "POST",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ ids: [...selectedIds] }),
         },
       );
-      let msg = `${result.deleted}명 삭제되었습니다.`;
+      let msg = tFmt("erp.users.list.deletedMsg", { count: result.deleted });
       if (result.skippedAdmin > 0) {
-        msg += ` (관리자 ${result.skippedAdmin}명은 제외)`;
+        msg += tFmt("erp.users.list.skippedAdmin", { count: result.skippedAdmin });
       }
       setActionMsg(msg);
       await load(page, { sortBy, sortDir });
     } catch (err) {
-      setActionMsg(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+      setActionMsg(err instanceof Error ? err.message : t("erp.users.list.deleteFailed"));
     } finally {
       setDeleting(false);
     }
@@ -199,20 +201,20 @@ export default function ErpUsersPage() {
     try {
       const q = memberSortQuery(sortBy, sortDir);
       const data = await api<{ users: AdminMember[] }>(`/api/admin/users/export?${q}`, {
-        token: getToken(),
+        token: getErpToken(),
       });
       const stamp = new Date().toISOString().slice(0, 10);
-      downloadMembersCsv(data.users, `회원목록_${stamp}.csv`);
-      setActionMsg(`회원 ${data.users.length}명 엑셀(CSV) 다운로드를 시작했습니다.`);
+      downloadMembersCsv(data.users, tFmt("erp.users.list.exportFilename", { date: stamp }));
+      setActionMsg(tFmt("erp.users.list.exportStarted", { count: data.users.length }));
     } catch (err) {
-      setActionMsg(err instanceof Error ? err.message : "다운로드에 실패했습니다.");
+      setActionMsg(err instanceof Error ? err.message : t("erp.users.list.exportFailed"));
     } finally {
       setExporting(false);
     }
   }
 
   return (
-    <ErpPageShell title="회원 관리">
+    <ErpPageShell titleKey="erp.nav.users">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -220,7 +222,7 @@ export default function ErpUsersPage() {
           disabled={deleting || selectedCount === 0}
           className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {deleting ? "삭제 중…" : `선택 삭제${selectedCount > 0 ? ` (${selectedCount})` : ""}`}
+          {deleting ? t("erp.common.deleting") : `${t("erp.users.list.deleteSelected")}${selectedCount > 0 ? ` (${selectedCount})` : ""}`}
         </button>
         <button
           type="button"
@@ -228,9 +230,9 @@ export default function ErpUsersPage() {
           disabled={exporting}
           className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {exporting ? "다운로드 중…" : "엑셀(회원목록) 다운"}
+          {exporting ? t("erp.common.downloading") : t("erp.users.list.exportExcel")}
         </button>
-        <span className="text-xs text-gray-500">총 {total}명 · 행 클릭 시 상세 정보</span>
+        <span className="text-xs text-gray-500">{tFmt("erp.users.list.summary", { total })}</span>
       </div>
 
       {actionMsg ? <p className="mb-2 text-sm text-gray-600">{actionMsg}</p> : null}
@@ -244,23 +246,23 @@ export default function ErpUsersPage() {
                   type="checkbox"
                   checked={allPageSelected}
                   onChange={togglePageAll}
-                  aria-label="현재 페이지 전체 선택"
+                  aria-label={t("erp.users.list.selectPageAria")}
                 />
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5">No</th>
+              <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.col.no")}</th>
               <SortableTh
-                label="가입일"
+                label={t("erp.users.col.joinedAt")}
                 column="createdAt"
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
-              <th className="whitespace-nowrap px-2 py-1.5">이름</th>
-              <th className="whitespace-nowrap px-2 py-1.5">연락처</th>
-              <th className="px-2 py-1.5">주소</th>
-              <th className="px-2 py-1.5">메일</th>
+              <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.col.name")}</th>
+              <th className="whitespace-nowrap px-2 py-1.5">{t("erp.users.col.phone")}</th>
+              <th className="px-2 py-1.5">{t("erp.users.col.address")}</th>
+              <th className="px-2 py-1.5">{t("erp.users.col.email")}</th>
               <SortableTh
-                label="총구매금액"
+                label={t("erp.users.col.totalPurchase")}
                 column="totalPurchaseAmount"
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -268,7 +270,7 @@ export default function ErpUsersPage() {
                 align="right"
               />
               <SortableTh
-                label="구매건수"
+                label={t("erp.users.col.purchaseCount")}
                 column="purchaseCount"
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -276,7 +278,7 @@ export default function ErpUsersPage() {
                 align="right"
               />
               <SortableTh
-                label="등급"
+                label={t("erp.users.col.tier")}
                 column="tier"
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -284,7 +286,7 @@ export default function ErpUsersPage() {
                 align="center"
               />
               <SortableTh
-                label="적립금액"
+                label={t("erp.users.col.points")}
                 column="points"
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -292,7 +294,7 @@ export default function ErpUsersPage() {
                 align="right"
               />
               <SortableTh
-                label="사용금액"
+                label={t("erp.users.col.pointsUsed")}
                 column="pointsUsed"
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -300,7 +302,7 @@ export default function ErpUsersPage() {
                 align="right"
               />
               <SortableTh
-                label="장바구니"
+                label={t("erp.users.col.cart")}
                 column="cartCount"
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -308,14 +310,14 @@ export default function ErpUsersPage() {
                 align="center"
               />
               <SortableTh
-                label="최근로그인"
+                label={t("erp.users.col.lastLogin")}
                 column="lastLoginAt"
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
               <SortableTh
-                label="접속횟수"
+                label={t("erp.users.col.loginCount")}
                 column="loginCount"
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -328,13 +330,13 @@ export default function ErpUsersPage() {
             {loading ? (
               <tr>
                 <td colSpan={15} className="px-2 py-4 text-center text-gray-400">
-                  불러오는 중…
+                  {t("erp.common.loading")}
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
                 <td colSpan={15} className="px-2 py-4 text-center text-gray-400">
-                  등록된 회원이 없습니다.
+                  {t("erp.users.list.noMembers")}
                 </td>
               </tr>
             ) : (
@@ -357,7 +359,7 @@ export default function ErpUsersPage() {
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleOne(u.id)}
-                        aria-label={`${u.name} 선택`}
+                        aria-label={tFmt("erp.users.list.selectMemberAria", { name: u.name })}
                       />
                     </td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-gray-500">{no}</td>

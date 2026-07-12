@@ -8,7 +8,7 @@ import { useI18n } from "@/components/I18nProvider";
 
 export function SiteFooter() {
   const pathname = usePathname();
-  if (pathname.startsWith("/erp")) return null;
+  if (pathname.startsWith("/erp") || pathname.startsWith("/admin-gate")) return null;
   return <SiteFooterInner />;
 }
 
@@ -35,6 +35,16 @@ function SiteFooterInner() {
             <li><Link href="/support/shipping">{t("footer.shipping")}</Link></li>
             <li><Link href="/support/returns">{t("footer.returns")}</Link></li>
             <li><Link href="/profile/inquiries">{t("footer.contact")}</Link></li>
+            <li>
+              <a
+                href="/admin-gate"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-500 hover:text-[var(--pink-accent)]"
+              >
+                {t("footer.adminPage")}
+              </a>
+            </li>
           </ul>
         </div>
         <div>

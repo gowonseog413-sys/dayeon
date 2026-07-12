@@ -18,6 +18,7 @@ import { WishlistHeartButton } from "@/components/WishlistHeartButton";
 import { useI18n } from "@/components/I18nProvider";
 import { getProductAccordionCopy } from "@/i18n/product-copy";
 import { getProductDisplayBadge } from "@/lib/erp-products";
+import { localizeReviewContent } from "@/i18n/review-content";
 import { productShippingLabel } from "@/lib/shipping-fee";
 import type { Product, ProductReview, ReviewSummary } from "@/lib/types";
 
@@ -228,7 +229,10 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
       }
       return;
     }
-    addToCart(product.id, qty);
+    if (!addToCart(product.id, qty)) {
+      router.push(`/login?next=/product/${product.id}`);
+      return;
+    }
     alert(t("product.addedBag"));
   }
 
@@ -425,7 +429,9 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
               >
                 {colors.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.label}
+                    {c.id === "default" || c.label === "기본"
+                      ? t("product.colorDefault")
+                      : c.label}
                   </option>
                 ))}
               </select>
@@ -475,7 +481,7 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link
-              href="/profile/wishlist"
+              href="/profile/wishlist?tab=wishlist"
               className="inline-flex items-center gap-1 text-sm text-[var(--pink-accent)] hover:underline"
             >
               ♥ {t("product.wishlist")} →
@@ -627,7 +633,9 @@ export function ProductDetailClient({ product, initialSummary }: Props) {
                         )}
                       </time>
                     </div>
-                    <p className="mt-3 text-sm text-gray-700">{r.content}</p>
+                    <p className="mt-3 text-sm text-gray-700">
+                      {localizeReviewContent(r.content, locale)}
+                    </p>
                   </li>
                 ))}
               </ul>

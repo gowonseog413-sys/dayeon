@@ -7,8 +7,10 @@ import {
   clearSession,
   getStoredUser,
   getToken,
+  migrateLegacyErpShopSession,
   saveSession,
 } from "@/lib/auth-store";
+import { clearCart } from "@/lib/cart-store";
 import type { User } from "@/lib/types";
 
 function readCachedUser(): User | null {
@@ -22,9 +24,11 @@ export function useAuth() {
   const [ready, setReady] = useState(false);
 
   const refresh = useCallback(async () => {
+    migrateLegacyErpShopSession();
     const token = getToken();
     const cached = getStoredUser();
     if (!token || !cached) {
+      clearCart();
       setUser(null);
       setReady(true);
       return;
@@ -32,10 +36,11 @@ export function useAuth() {
     setUser(cached);
     try {
       const data = await api<{ user: User }>("/api/auth/me", { token });
-      saveSession(token, data.user, true);
+      saveSession(token, data.user, { silent: true });
       setUser(data.user);
     } catch {
       clearSession();
+      clearCart();
       setUser(null);
     } finally {
       setReady(true);

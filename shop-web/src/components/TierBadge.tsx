@@ -1,4 +1,7 @@
-import { TIER_COLORS, normalizeTierId, tierLabel, type TierId } from "@/lib/tier";
+"use client";
+
+import { useI18n } from "@/components/I18nProvider";
+import { TIER_COLORS, normalizeTierId, tierMessageKey, type TierId } from "@/lib/tier";
 
 function TierIcon({ tier }: { tier: TierId }) {
   const c = TIER_COLORS[tier];
@@ -58,8 +61,9 @@ type Props = {
 };
 
 export function TierBadge({ tier, size = "md", showLabel = true, className = "" }: Props) {
+  const { t } = useI18n();
   const id = normalizeTierId(tier);
-  const label = tierLabel(id);
+  const label = t(tierMessageKey(id));
   const textSize = size === "sm" ? "text-[11px]" : "text-xs";
 
   return (

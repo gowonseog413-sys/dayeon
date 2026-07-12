@@ -3,7 +3,12 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { getStaticPage, type StaticPageKey } from "@/i18n/static-content";
+import {
+  getStaticPage,
+  getStaticSupport,
+  type StaticPageKey,
+  type StaticSupportKey,
+} from "@/i18n/static-content";
 import { CmsHtmlBody } from "@/components/CmsHtmlBody";
 import { useI18n } from "@/components/I18nProvider";
 import { useTheme } from "@/components/ThemeProvider";
@@ -21,13 +26,27 @@ type Props = {
   kind: "pages" | "support";
   pageKey: string;
   staticKey?: StaticPageKey;
+  staticSupportKey?: StaticSupportKey;
   twoColumn?: boolean;
   /** 회사소개 등 — 본문 옆 장식 로고 */
   sideImage?: SideImage;
 };
 
-export function CmsContentPage({ kind, pageKey, staticKey, twoColumn, sideImage }: Props) {
-  const { locale } = useI18n();
+function staticPageToData(
+  s: ReturnType<typeof getStaticPage>,
+): PageData {
+  return { title: s.title, sections: s.sections, email: s.email };
+}
+
+export function CmsContentPage({
+  kind,
+  pageKey,
+  staticKey,
+  staticSupportKey,
+  twoColumn,
+  sideImage,
+}: Props) {
+  const { locale, t } = useI18n();
   const { theme } = useTheme();
   const showSideImage = sideImage && theme === "pink";
   const [page, setPage] = useState<PageData | null>(null);
@@ -35,27 +54,39 @@ export function CmsContentPage({ kind, pageKey, staticKey, twoColumn, sideImage 
 
   useEffect(() => {
     setLoading(true);
+
+    if (locale !== "ko") {
+      if (staticKey) {
+        setPage(staticPageToData(getStaticPage(staticKey, locale)));
+        setLoading(false);
+        return;
+      }
+      if (staticSupportKey) {
+        setPage(staticPageToData(getStaticSupport(staticSupportKey, locale)));
+        setLoading(false);
+        return;
+      }
+    }
+
     api<{ page: PageData }>(`/api/content/${kind}/${pageKey}`)
       .then((d) => setPage(d.page))
       .catch(() => {
-        if (staticKey && locale === "ko") {
-          const s = getStaticPage(staticKey, "ko");
-          setPage({ title: s.title, sections: s.sections });
-        } else if (staticKey) {
-          const s = getStaticPage(staticKey, locale);
-          setPage({ title: s.title, sections: s.sections });
+        if (staticKey) {
+          setPage(staticPageToData(getStaticPage(staticKey, locale)));
+        } else if (staticSupportKey) {
+          setPage(staticPageToData(getStaticSupport(staticSupportKey, locale)));
         } else {
           setPage(null);
         }
       })
       .finally(() => setLoading(false));
-  }, [kind, pageKey, locale, staticKey]);
+  }, [kind, pageKey, locale, staticKey, staticSupportKey]);
 
   if (loading) {
-    return <p className="py-20 text-center text-sm text-gray-500">불러오는 중...</p>;
+    return <p className="py-20 text-center text-sm text-gray-500">{t("common.loading")}</p>;
   }
   if (!page) {
-    return <p className="py-20 text-center text-sm text-gray-500">내용을 찾을 수 없습니다.</p>;
+    return <p className="py-20 text-center text-sm text-gray-500">{t("articles.notFound")}</p>;
   }
 
   if (page.html?.trim()) {

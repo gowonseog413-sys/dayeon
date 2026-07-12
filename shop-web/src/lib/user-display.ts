@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/messages";
 import type { User } from "@/lib/types";
 import { normalizeTierId, tierLabel } from "@/lib/tier";
 
@@ -6,9 +7,13 @@ export function displayName(user: Pick<User, "firstName" | "lastName"> | null) {
   return `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`.trim();
 }
 
-export function honorificName(user: Pick<User, "firstName" | "lastName"> | null) {
+export function honorificName(
+  user: Pick<User, "firstName" | "lastName"> | null,
+  locale: Locale = "ko",
+) {
   const name = displayName(user);
   if (!name) return "";
+  if (locale === "en" || locale === "id") return name;
   return name.endsWith("님") ? name : `${name}님`;
 }
 

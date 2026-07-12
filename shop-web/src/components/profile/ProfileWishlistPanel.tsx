@@ -15,6 +15,7 @@ import {
   WISHLIST_UPDATED_EVENT,
 } from "@/lib/wishlist-store";
 import {
+  buildFacebookShareUrl,
   buildWishlistShareText,
   copyShareText,
   nativeShare,
@@ -119,8 +120,14 @@ export function ProfileWishlistPanel({ page, onPageChange }: Props) {
 
     if (channel === "whatsapp") shareWhatsApp(text);
     else if (channel === "line") shareLine(text);
-    else if (channel === "facebook") shareFacebook(url, text);
-    else if (channel === "telegram") shareTelegram(url, text.slice(0, 200));
+    else if (channel === "facebook") shareFacebook(buildFacebookShareUrl(selectedRows));
+    else if (channel === "telegram") {
+      const shareUrl =
+        selectedRows.length === 1
+          ? `${window.location.origin}/product/${selectedRows[0].productId}`
+          : `${window.location.origin}/share/wishlist?ids=${selectedRows.map((r) => r.productId).join(",")}`;
+      shareTelegram(shareUrl, text.slice(0, 200));
+    }
     else if (channel === "copy") {
       const ok = await copyShareText(text);
       setShareMsg(ok ? t("wishlist.shareCopied") : t("wishlist.shareCopyFail"));

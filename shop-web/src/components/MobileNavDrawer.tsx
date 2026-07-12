@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useI18n } from "@/components/I18nProvider";
+import { MobileCategoryAccordion } from "@/components/MobileCategoryAccordion";
 import { MOBILE_MENU_MAIN, MOBILE_MENU_SUPPORT } from "@/lib/mobile-menu";
+import { useLocalizedShopCatalog } from "@/lib/use-shop-catalog";
 
 type Props = {
   open: boolean;
@@ -28,6 +30,7 @@ export function MobileNavDrawer({
 }: Props) {
   const pathname = usePathname();
   const { t } = useI18n();
+  const { catalog } = useLocalizedShopCatalog();
 
   useEffect(() => {
     onClose();
@@ -102,6 +105,20 @@ export function MobileNavDrawer({
                   </Link>
                 </li>
               </ul>
+
+              <p className="mb-2 text-sm font-semibold text-gray-900">{t("mobile.shopping")}</p>
+              <div className="mb-5 border-b border-gray-100 pb-5">
+                {catalog.categoryTree.map((main) => (
+                  <MobileCategoryAccordion key={main.id} main={main} onNavigate={onClose} />
+                ))}
+                <Link
+                  href="/articles"
+                  onClick={onClose}
+                  className="block border-t border-gray-100 py-2.5 font-medium text-gray-900 hover:text-[var(--pink-accent)]"
+                >
+                  {t("nav.articles")}
+                </Link>
+              </div>
 
               <ul className="space-y-3 text-sm text-gray-700">
                 {MOBILE_MENU_MAIN.map((item) => (

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
+import { localizeReviewContent } from "@/i18n/review-content";
 import { api } from "@/lib/api";
 import { getToken } from "@/lib/auth-store";
 import { useReviewReward } from "@/hooks/useReviewReward";
-import { reviewRewardNotice } from "@/lib/review-reward";
 import { productImageFallback } from "@/lib/product-image-fallback";
 import type { ProductReview, ReviewableItem } from "@/lib/types";
 
@@ -20,11 +21,11 @@ function Stars({ value }: { value: number }) {
 }
 
 export default function ProfileReviewsPage() {
+  const { t, tFmt, locale } = useI18n();
   const { reviewReward } = useReviewReward();
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [reviewable, setReviewable] = useState<ReviewableItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const rewardNotice = reviewRewardNotice(reviewReward);
 
   useEffect(() => {
     api<{ reviews: ProductReview[]; reviewable: ReviewableItem[] }>("/api/reviews/mine", {
@@ -42,24 +43,26 @@ export default function ProfileReviewsPage() {
   }, []);
 
   if (loading) {
-    return <p className="text-sm text-gray-500">불러오는 중…</p>;
+    return <p className="text-sm text-gray-500">{t("common.loading")}</p>;
   }
 
   const empty = reviews.length === 0 && reviewable.length === 0;
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold">작성 리뷰</h1>
+      <h1 className="mb-2 text-2xl font-semibold">{t("profile.title.reviews")}</h1>
       <div className="mb-6 text-sm text-gray-500">
-        <p>배송 완료된 주문 상품만 리뷰를 작성할 수 있습니다.</p>
-        {rewardNotice ? (
-          <p className="mt-1 font-medium text-[var(--pink-deep)]">{rewardNotice}</p>
+        <p>{t("profile.reviews.deliveredOnly")}</p>
+        {reviewReward.enabled && reviewReward.points > 0 ? (
+          <p className="mt-1 font-medium text-[var(--pink-deep)]">
+            {tFmt("profile.reviews.reward", { points: String(reviewReward.points) })}
+          </p>
         ) : null}
       </div>
 
       {reviewable.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">작성 가능한 리뷰</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-700">{t("profile.reviews.pending")}</h2>
           <ul className="space-y-3">
             {reviewable.map((item) => (
               <li
@@ -82,14 +85,14 @@ export default function ProfileReviewsPage() {
                   <p className="text-xs text-gray-500">{item.brand}</p>
                   <p className="font-medium">{item.name}</p>
                   <p className="text-xs text-gray-400">
-                    {item.orderNumber || item.orderId.slice(0, 8)} · 배송 완료
+                    {item.orderNumber || item.orderId.slice(0, 8)} · {t("profile.reviews.delivered")}
                   </p>
                 </div>
                 <Link
                   href={`/product/${item.productId}#product-reviews`}
                   className="shrink-0 rounded-full bg-[var(--pink-accent)] px-4 py-2 text-xs text-white"
                 >
-                  리뷰 작성
+                  {t("profile.reviews.write")}
                 </Link>
               </li>
             ))}
@@ -99,7 +102,7 @@ export default function ProfileReviewsPage() {
 
       {reviews.length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">작성한 리뷰</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-700">{t("profile.reviews.written")}</h2>
           <ul className="space-y-3">
             {reviews.map((r) => (
               <li key={r.id} className="rounded-xl border bg-white p-4">
@@ -126,9 +129,13 @@ export default function ProfileReviewsPage() {
                     <div className="mt-1">
                       <Stars value={r.rating} />
                     </div>
-                    <p className="mt-2 text-sm text-gray-700">{r.content}</p>
+                    <p className="mt-2 text-sm text-gray-700">
+                      {localizeReviewContent(r.content, locale)}
+                    </p>
                     <p className="mt-1 text-xs text-gray-400">
-                      {new Date(r.createdAt).toLocaleString("ko-KR")}
+                      {new Date(r.createdAt).toLocaleString(
+                        locale === "id" ? "id-ID" : locale === "en" ? "en-US" : "ko-KR",
+                      )}
                     </p>
                   </div>
                 </div>
@@ -140,15 +147,13 @@ export default function ProfileReviewsPage() {
 
       {empty && (
         <div className="text-center text-gray-600">
-          <p className="text-lg font-medium">아직 리뷰가 없습니다</p>
-          <p className="mt-2 text-sm">
-            배송이 완료된 주문 상품에 대해서만 리뷰를 남길 수 있습니다.
-          </p>
+          <p className="text-lg font-medium">{t("profile.reviews.empty")}</p>
+          <p className="mt-2 text-sm">{t("profile.reviews.emptyHint")}</p>
           <Link
             href="/"
             className="mt-6 inline-block rounded-full border border-gray-300 px-6 py-2 text-sm"
           >
-            쇼핑으로 돌아가기
+            {t("profile.backToShop")}
           </Link>
         </div>
       )}

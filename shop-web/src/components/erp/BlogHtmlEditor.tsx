@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { countEditorStats } from "@/lib/sections-to-html";
 
 type Props = {
@@ -9,21 +10,6 @@ type Props = {
   placeholder?: string;
   minHeight?: number;
 };
-
-const FONTS = [
-  { label: "기본 (Pretendard)", value: "Pretendard, 'Noto Sans KR', sans-serif" },
-  { label: "Noto Sans KR", value: "'Noto Sans KR', sans-serif" },
-  { label: "나눔고딕", value: "'Nanum Gothic', sans-serif" },
-  { label: "명조", value: "Georgia, 'Times New Roman', serif" },
-  { label: "고딕", value: "Arial, Helvetica, sans-serif" },
-];
-
-const SIZES = [
-  { label: "작게", value: "2" },
-  { label: "보통", value: "3" },
-  { label: "크게", value: "4" },
-  { label: "제목", value: "5" },
-];
 
 function ToolbarBtn({
   children,
@@ -54,12 +40,36 @@ function ToolbarBtn({
 export function BlogHtmlEditor({
   value,
   onChange,
-  placeholder = "본문을 입력하세요…",
+  placeholder,
   minHeight = 420,
 }: Props) {
+  const { t, tFmt } = useI18n();
   const editorRef = useRef<HTMLDivElement>(null);
   const [htmlMode, setHtmlMode] = useState(false);
   const [stats, setStats] = useState(() => countEditorStats(value));
+
+  const displayPlaceholder = placeholder ?? t("erp.editor.placeholder");
+
+  const fonts = useMemo(
+    () => [
+      { label: t("erp.editor.fontDefault"), value: "Pretendard, 'Noto Sans KR', sans-serif" },
+      { label: t("erp.editor.fontNoto"), value: "'Noto Sans KR', sans-serif" },
+      { label: t("erp.editor.fontNanum"), value: "'Nanum Gothic', sans-serif" },
+      { label: t("erp.editor.fontSerif"), value: "Georgia, 'Times New Roman', serif" },
+      { label: t("erp.editor.fontSans"), value: "Arial, Helvetica, sans-serif" },
+    ],
+    [t],
+  );
+
+  const sizes = useMemo(
+    () => [
+      { label: t("erp.editor.sizeSmall"), value: "2" },
+      { label: t("erp.editor.sizeNormal"), value: "3" },
+      { label: t("erp.editor.sizeLarge"), value: "4" },
+      { label: t("erp.editor.sizeHeading"), value: "5" },
+    ],
+    [t],
+  );
 
   const syncFromEditor = useCallback(() => {
     const html = editorRef.current?.innerHTML ?? "";
@@ -85,11 +95,11 @@ export function BlogHtmlEditor({
       <div className="flex flex-wrap items-center gap-1 border-b border-gray-100 bg-[#faf8f5] px-2 py-2">
         <select
           className="max-w-[9rem] rounded border border-gray-200 bg-white px-2 py-1 text-xs"
-          defaultValue={FONTS[0].value}
+          defaultValue={fonts[0].value}
           onChange={(e) => exec("fontName", e.target.value)}
-          title="글꼴"
+          title={t("erp.editor.fontTitle")}
         >
-          {FONTS.map((f) => (
+          {fonts.map((f) => (
             <option key={f.value} value={f.value}>
               {f.label}
             </option>
@@ -99,57 +109,60 @@ export function BlogHtmlEditor({
           className="rounded border border-gray-200 bg-white px-2 py-1 text-xs"
           defaultValue="3"
           onChange={(e) => exec("fontSize", e.target.value)}
-          title="글자 크기"
+          title={t("erp.editor.sizeTitle")}
         >
-          {SIZES.map((s) => (
+          {sizes.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
             </option>
           ))}
         </select>
         <span className="mx-1 h-5 w-px bg-gray-200" aria-hidden />
-        <ToolbarBtn title="굵게" onClick={() => exec("bold")}>
+        <ToolbarBtn title={t("erp.editor.bold")} onClick={() => exec("bold")}>
           <strong>B</strong>
         </ToolbarBtn>
-        <ToolbarBtn title="기울임" onClick={() => exec("italic")}>
+        <ToolbarBtn title={t("erp.editor.italic")} onClick={() => exec("italic")}>
           <em>I</em>
         </ToolbarBtn>
-        <ToolbarBtn title="밑줄" onClick={() => exec("underline")}>
+        <ToolbarBtn title={t("erp.editor.underline")} onClick={() => exec("underline")}>
           <span className="underline">U</span>
         </ToolbarBtn>
         <span className="mx-1 h-5 w-px bg-gray-200" aria-hidden />
-        <ToolbarBtn title="제목" onClick={() => exec("formatBlock", "h2")}>
+        <ToolbarBtn title={t("erp.editor.heading")} onClick={() => exec("formatBlock", "h2")}>
           H2
         </ToolbarBtn>
-        <ToolbarBtn title="소제목" onClick={() => exec("formatBlock", "h3")}>
+        <ToolbarBtn title={t("erp.editor.subheading")} onClick={() => exec("formatBlock", "h3")}>
           H3
         </ToolbarBtn>
-        <ToolbarBtn title="본문" onClick={() => exec("formatBlock", "p")}>
+        <ToolbarBtn title={t("erp.editor.paragraph")} onClick={() => exec("formatBlock", "p")}>
           P
         </ToolbarBtn>
         <span className="mx-1 h-5 w-px bg-gray-200" aria-hidden />
-        <ToolbarBtn title="글머리" onClick={() => exec("insertUnorderedList")}>
-          • 목록
+        <ToolbarBtn title={t("erp.editor.bulletList")} onClick={() => exec("insertUnorderedList")}>
+          {t("erp.editor.bulletList")}
         </ToolbarBtn>
-        <ToolbarBtn title="번호" onClick={() => exec("insertOrderedList")}>
-          1. 목록
+        <ToolbarBtn title={t("erp.editor.numberedList")} onClick={() => exec("insertOrderedList")}>
+          {t("erp.editor.numberedList")}
         </ToolbarBtn>
-        <ToolbarBtn title="링크" onClick={() => {
-          const url = window.prompt("링크 URL");
-          if (url) exec("createLink", url);
-        }}>
-          링크
+        <ToolbarBtn
+          title={t("erp.editor.link")}
+          onClick={() => {
+            const url = window.prompt(t("erp.editor.linkPrompt"));
+            if (url) exec("createLink", url);
+          }}
+        >
+          {t("erp.editor.link")}
         </ToolbarBtn>
         <span className="mx-1 h-5 w-px bg-gray-200" aria-hidden />
-        <ToolbarBtn title="왼쪽" onClick={() => exec("justifyLeft")}>
+        <ToolbarBtn title={t("erp.editor.alignLeft")} onClick={() => exec("justifyLeft")}>
           ≡
         </ToolbarBtn>
-        <ToolbarBtn title="가운데" onClick={() => exec("justifyCenter")}>
+        <ToolbarBtn title={t("erp.editor.alignCenter")} onClick={() => exec("justifyCenter")}>
           ≡
         </ToolbarBtn>
         <span className="ml-auto">
           <ToolbarBtn
-            title="HTML 소스"
+            title={t("erp.editor.htmlSource")}
             active={htmlMode}
             onClick={() => setHtmlMode((v) => !v)}
           >
@@ -174,7 +187,7 @@ export function BlogHtmlEditor({
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
-          data-placeholder={placeholder}
+          data-placeholder={displayPlaceholder}
           onInput={syncFromEditor}
           onBlur={syncFromEditor}
           className="blog-html-editor cms-html-body w-full px-5 py-4 text-[15px] leading-[1.75] text-gray-800 outline-none"
@@ -184,11 +197,13 @@ export function BlogHtmlEditor({
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 bg-[#faf8f5] px-4 py-2 text-xs text-gray-500">
         <span>
-          글자 <strong className="text-gray-700">{stats.chars}</strong>
-          {" · "}공백 제외 <strong className="text-gray-700">{stats.charsWithSpaces}</strong>
-          {" · "}단어 <strong className="text-gray-700">{stats.words}</strong>
+          {tFmt("erp.editor.stats", {
+            chars: stats.chars,
+            noSpace: stats.charsWithSpaces,
+            words: stats.words,
+          })}
         </span>
-        <span className="text-[10px] text-gray-400">네이버 블로그처럼 한 화면에서 통으로 작성</span>
+        <span className="text-[10px] text-gray-400">{t("erp.editor.footerHint")}</span>
       </div>
     </div>
   );

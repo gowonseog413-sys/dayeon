@@ -1,7 +1,7 @@
 "use client";
 
 import { ProductCarousel } from "@/components/ProductCarousel";
-import { useShopCatalog } from "@/lib/use-shop-catalog";
+import { useLocalizedShopCatalog } from "@/lib/use-shop-catalog";
 import type { Product } from "@/lib/types";
 
 type Props = {
@@ -20,7 +20,7 @@ const CAROUSEL_CONFIG: Record<
 };
 
 export function HomeSections({ products }: Props) {
-  const { catalog } = useShopCatalog();
+  const { catalog } = useLocalizedShopCatalog();
   const bySection = (s: string) => products.filter((p) => p.section === s);
 
   const sections = [...catalog.sections].sort(

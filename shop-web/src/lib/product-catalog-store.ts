@@ -21,10 +21,14 @@ export type CategoryTreeNode = {
   children?: CategoryTreeNode[];
 };
 
+export type CatalogItemLabels = Partial<Record<"ko" | "en" | "id", string>>;
+
 export type CatalogItem = {
   id: string;
   label: string;
   sortOrder?: number;
+  /** ERP에서 언어별 표시명 — 없으면 id 기반 기본 번역 사용 */
+  labels?: CatalogItemLabels;
 };
 
 export type FilterFieldOptionsMap = Record<FilterOptionFieldId, CatalogItem[]>;

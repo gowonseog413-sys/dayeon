@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { api } from "@/lib/api";
 import { OAUTH_ERRORS } from "@/lib/oauth";
 import { mergeCartOnLogin } from "@/lib/cart-store";
 import { mergeWishlistOnLogin } from "@/lib/wishlist-store";
 import { saveSession } from "@/lib/auth-store";
+import { resolveShopOAuthDest } from "@/lib/oauth-redirect";
 import type { User } from "@/lib/types";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") || "/";
-  const [email, setEmail] = useState("");
+  const rawNext = searchParams.get("next") || "/";
+  const nextUrl =
+    rawNext.startsWith("/erp") || rawNext.startsWith("/admin-gate") ? "/" : rawNext;
+  const [email, setEmail] = useState(() => searchParams.get("email") || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,13 +37,7 @@ export function LoginForm() {
       saveSession(data.token, data.user);
       await mergeCartOnLogin(data.token);
       await mergeWishlistOnLogin(data.token);
-      const dest =
-        data.user.role === "admin" && !nextUrl.startsWith("/checkout")
-          ? "/erp"
-          : nextUrl.startsWith("/login")
-            ? "/profile"
-            : nextUrl;
-      window.location.href = dest;
+      window.location.href = resolveShopOAuthDest(nextUrl, data.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : "로그인 실패");
     } finally {
@@ -69,16 +67,23 @@ export function LoginForm() {
             className="mt-1 w-full rounded border border-gray-200 px-3 py-2"
           />
         </label>
-        <label className="block text-sm">
-          Password*
-          <input
-            type="password"
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-sm">Password*</span>
+            <Link
+              href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"}
+              className="text-xs font-medium text-[var(--pink-accent)] hover:underline"
+            >
+              비밀번호 찾기
+            </Link>
+          </div>
+          <PasswordInput
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-200 px-3 py-2"
+            onChange={setPassword}
+            autoComplete="current-password"
           />
-        </label>
+        </div>
         <button
           type="submit"
           disabled={loading}
@@ -88,11 +93,14 @@ export function LoginForm() {
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-gray-600">
-        계정이 없으신가요? <Link href="/register" className="text-[var(--pink-accent)]">회원가입</Link>
-      </p>
-      <p className="mt-4 rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
-        ERP 테스트: admin@eyesight.local / admin1234<br />
-        고객 테스트: demo@eyesight.local / demo1234
+        계정이 없으신가요?{" "}
+        <Link href="/register" className="font-medium text-[var(--pink-accent)]">
+          회원가입
+        </Link>
+        <span className="mx-2 text-gray-300">|</span>
+        <Link href="/forgot-password" className="font-medium text-[var(--pink-accent)]">
+          비밀번호 찾기
+        </Link>
       </p>
     </>
   );

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { StockCheckoutModal } from "@/components/StockCheckoutModal";
 import { useStockCheckoutGate } from "@/hooks/useStockCheckoutGate";
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export function ProfileCartPanel({ page, onPageChange }: Props) {
+  const { t } = useI18n();
   const [lines, setLines] = useState<BagLine[]>([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
@@ -95,19 +97,19 @@ export function ProfileCartPanel({ page, onPageChange }: Props) {
   }
 
   if (loading) {
-    return <p className="text-sm text-gray-500">불러오는 중...</p>;
+    return <p className="text-sm text-gray-500">{t("common.loading")}</p>;
   }
 
   if (!lines.length) {
     return (
       <div className="rounded-2xl border-2 border-[var(--pink-border)] bg-white p-8 text-center shadow-[0_4px_18px_var(--pink-shadow)]">
-        <p className="text-lg font-medium text-gray-700">장바구니가 비어 있습니다.</p>
-        <p className="mt-2 text-sm text-gray-500">관심 상품을 담아 보세요.</p>
+        <p className="text-lg font-medium text-gray-700">{t("profile.cart.empty")}</p>
+        <p className="mt-2 text-sm text-gray-500">{t("profile.cart.emptyHint")}</p>
         <Link
           href="/"
           className="mt-6 inline-block rounded-full border-2 border-[var(--pink-border)] px-6 py-2 text-sm hover:border-[var(--pink-accent)]"
         >
-          쇼핑 계속하기
+          {t("profile.continueShop")}
         </Link>
       </div>
     );
@@ -167,8 +169,8 @@ export function ProfileCartPanel({ page, onPageChange }: Props) {
           <span>{formatRp(grandTotal)}</span>
         </p>
         <p className="mt-1 flex justify-between text-gray-600">
-          <span>배송비</span>
-          <span>{formatOrderShippingLabel(shippingFee)}</span>
+          <span>{t("profile.orders.shipping")}</span>
+          <span>{formatOrderShippingLabel(shippingFee, t("product.shippingFree"))}</span>
         </p>
         <p className="mt-2 flex justify-between border-t border-[var(--pink-border)] pt-2 text-base font-semibold text-[var(--pink-deep)]">
           <span>결제 예정</span>

@@ -8,12 +8,13 @@ import {
   filtersToQuery,
 } from "@/lib/catalog-filter";
 import { getFilterFieldLabel, mergeFilterFieldOptions } from "@/lib/product-catalog-store";
-import { useShopCatalog } from "@/lib/use-shop-catalog";
+import { useLocalizedShopCatalog } from "@/lib/use-shop-catalog";
 import type { Product } from "@/lib/types";
 
 type Props = {
   products: Product[];
   filters: CatalogFiltersState;
+  className?: string;
 };
 
 const FIELD_I18N: Record<string, string> = {
@@ -29,10 +30,11 @@ const FIELD_I18N: Record<string, string> = {
   saleOnly: "catalog.saleOnly",
 };
 
-export function CatalogFilters({ products, filters }: Props) {
+export function CatalogFilters({ products, filters, className = "" }: Props) {
   const router = useRouter();
   const { t } = useI18n();
-  const { catalog } = useShopCatalog();
+  const { catalog } = useLocalizedShopCatalog();
+  const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState<CatalogFiltersState>({ ...filters });
   const filterFieldOptions = useMemo(
     () => mergeFilterFieldOptions(catalog.filterFieldOptions),
@@ -96,9 +98,7 @@ export function CatalogFilters({ products, filters }: Props) {
 
   const isLens = filters.category === "contact-lenses" || !filters.category;
 
-  return (
-    <aside className="w-full shrink-0 rounded-2xl border-2 border-[var(--pink-border)] bg-white/90 p-4 shadow-sm lg:w-56">
-      <p className="mb-4 text-sm font-semibold text-[var(--pink-deep)]">{t("catalog.filter")}</p>
+  const filterBody = (
       <div className="space-y-4 text-sm">
         <FilterSelect
           label={fieldLabel("category")}
@@ -196,6 +196,29 @@ export function CatalogFilters({ products, filters }: Props) {
         >
           {t("catalog.reset")}
         </button>
+      </div>
+  );
+
+  return (
+    <aside className={`w-full shrink-0 lg:w-56 ${className}`.trim()}>
+      <div className="rounded-2xl border-2 border-[var(--pink-border)] bg-white/90 shadow-sm lg:p-4">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-[var(--pink-deep)] lg:hidden"
+          aria-expanded={expanded}
+        >
+          {t("catalog.filter")}
+          <span className="text-xs text-gray-400">
+            {expanded ? t("catalog.filterCollapse") : t("catalog.filterExpand")}
+          </span>
+        </button>
+        <p className="mb-4 hidden text-sm font-semibold text-[var(--pink-deep)] lg:block">
+          {t("catalog.filter")}
+        </p>
+        <div className={`${expanded ? "block" : "hidden"} px-4 pb-4 lg:block lg:px-0 lg:pb-0`}>
+          {filterBody}
+        </div>
       </div>
     </aside>
   );

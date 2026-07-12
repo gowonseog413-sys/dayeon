@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/I18nProvider";
+import { localizeArticle } from "@/i18n/article-content";
 import {
   ARTICLE_PAGE_SIZE,
   DEFAULT_ARTICLE_CATEGORIES,
@@ -28,11 +30,13 @@ export function ArticleListTable({
   onRemove,
   categories = DEFAULT_ARTICLE_CATEGORIES,
 }: Props) {
+  const { t, tFmt, locale } = useI18n();
+
   return (
     <div className="rounded-xl border bg-white">
       <div className="flex items-center justify-between border-b bg-gray-50 px-3 py-2">
         <p className="text-xs text-gray-500">
-          전체 {total}건 · 페이지당 {ARTICLE_PAGE_SIZE}건
+          {tFmt("erp.articles.listSummary", { total, pageSize: ARTICLE_PAGE_SIZE })}
         </p>
       </div>
       <table className="w-full table-fixed text-left text-sm">
@@ -47,10 +51,10 @@ export function ArticleListTable({
         <thead className="border-b bg-gray-50 text-gray-500">
           <tr>
             <th className="px-2 py-1.5 text-center">No</th>
-            <th className="px-2 py-1.5">등록일</th>
-            <th className="px-2 py-1.5">상태</th>
-            <th className="px-2 py-1.5">카테고리</th>
-            <th className="px-2 py-1.5">제목</th>
+            <th className="px-2 py-1.5">{t("erp.articles.colDate")}</th>
+            <th className="px-2 py-1.5">{t("erp.articles.colStatus")}</th>
+            <th className="px-2 py-1.5">{t("erp.articles.colCategory")}</th>
+            <th className="px-2 py-1.5">{t("erp.articles.colTitle")}</th>
             <th className="px-2 py-1.5" />
           </tr>
         </thead>
@@ -58,7 +62,7 @@ export function ArticleListTable({
           {articles.length === 0 ? (
             <tr>
               <td colSpan={6} className="px-2 py-6 text-center text-gray-400">
-                등록된 게시물이 없습니다.
+                {t("erp.articles.noArticles")}
               </td>
             </tr>
           ) : (
@@ -75,9 +79,11 @@ export function ArticleListTable({
                   <td className="truncate px-2 py-1.5 text-gray-500">
                     {formatArticleDate(a.createdAt)}
                   </td>
-                  <td className="truncate px-2 py-1.5">{a.published ? "게시" : "임시"}</td>
+                  <td className="truncate px-2 py-1.5">
+                    {a.published ? t("erp.articles.statusPublished") : t("erp.articles.statusDraft")}
+                  </td>
                   <td className="truncate px-2 py-1.5 text-gray-600" title={a.category}>
-                    {getArticleCategoryLabel(a.category, categories)}
+                    {getArticleCategoryLabel(a.category, categories, locale)}
                   </td>
                   <td className="truncate px-2 py-1.5" title={a.title}>
                     <a
@@ -86,7 +92,7 @@ export function ArticleListTable({
                       rel="noreferrer"
                       className="text-[var(--pink-accent)] hover:underline"
                     >
-                      {a.title}
+                      {localizeArticle(a.slug, locale, { title: a.title, excerpt: a.excerpt }).title}
                     </a>
                   </td>
                   <td className="px-2 py-1.5 text-right whitespace-nowrap">
@@ -95,14 +101,14 @@ export function ArticleListTable({
                       className="mr-3 text-gray-600 hover:text-gray-900"
                       onClick={() => onEdit(a)}
                     >
-                      수정
+                      {t("erp.common.edit")}
                     </button>
                     <button
                       type="button"
                       className="text-red-500 hover:text-red-600"
                       onClick={() => onRemove(a.id)}
                     >
-                      삭제
+                      {t("erp.common.delete")}
                     </button>
                   </td>
                 </tr>

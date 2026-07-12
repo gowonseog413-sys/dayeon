@@ -2,15 +2,17 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ArticleListTable } from "@/components/erp/ArticleListTable";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
 import { ARTICLE_PAGE_SIZE, DEFAULT_ARTICLE_CATEGORIES, type ArticleCategory } from "@/lib/erp-articles";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import type { Article } from "@/lib/types";
 
 function ErpArticlesListContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -21,7 +23,7 @@ function ErpArticlesListContent() {
 
   function load() {
     setLoading(true);
-    const token = getToken();
+    const token = getErpToken();
     Promise.all([
       api<{ articles: Article[] }>("/api/admin/articles", { token }),
       api<{ categories: ArticleCategory[] }>("/api/admin/articles/categories", { token }),
@@ -52,15 +54,15 @@ function ErpArticlesListContent() {
   }
 
   async function remove(id: string) {
-    if (!confirm("삭제할까요?")) return;
-    await api(`/api/admin/articles/${id}`, { method: "DELETE", token: getToken() });
+    if (!confirm(t("erp.articles.confirmDelete"))) return;
+    await api(`/api/admin/articles/${id}`, { method: "DELETE", token: getErpToken() });
     load();
   }
 
   return (
-    <ErpPageShell title="게시물 목록" description="등록된 언론 보도 게시물을 확인·수정·삭제할 수 있습니다.">
+    <ErpPageShell titleKey="erp.nav.articlesList" descriptionKey="erp.articles.listDesc">
       {loading ? (
-        <p className="text-sm text-gray-400">불러오는 중…</p>
+        <p className="text-sm text-gray-400">{t("erp.common.loading")}</p>
       ) : (
         <>
           <ArticleListTable
@@ -82,9 +84,16 @@ function ErpArticlesListContent() {
   );
 }
 
+function ErpArticlesListFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.articlesList">{t("erp.common.loading")}</ErpPageShell>
+  );
+}
+
 export default function ErpArticlesListPage() {
   return (
-    <Suspense fallback={<ErpPageShell title="기사 목록">불러오는 중…</ErpPageShell>}>
+    <Suspense fallback={<ErpArticlesListFallback />}>
       <ErpArticlesListContent />
     </Suspense>
   );

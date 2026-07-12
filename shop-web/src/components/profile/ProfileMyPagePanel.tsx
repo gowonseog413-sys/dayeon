@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AddressSameModal } from "@/components/AddressSameModal";
 import { SaveAlertModal } from "@/components/SaveAlertModal";
+import { useI18n } from "@/components/I18nProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -17,6 +18,7 @@ const inputClass =
 
 export function ProfileMyPagePanel() {
   const { user, ready } = useAuth();
+  const { t } = useI18n();
   const { theme } = useTheme();
   const [form, setForm] = useState({
     name: "",
@@ -101,7 +103,7 @@ export function ProfileMyPagePanel() {
   }
 
   if (!ready || !user) {
-    return <p className="text-sm text-gray-500">로딩 중...</p>;
+    return <p className="text-sm text-gray-500">{t("common.loading")}</p>;
   }
 
   const savedShipping = shippingFromUser(user);
@@ -120,7 +122,7 @@ export function ProfileMyPagePanel() {
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className={labelClass}>
-              이름
+              {t("profile.field.name")}
               <input
                 type="text"
                 required
@@ -133,7 +135,7 @@ export function ProfileMyPagePanel() {
             </label>
 
             <label className={labelClass}>
-              생년월일
+              {t("profile.field.birth")}
               <input
                 type="date"
                 value={form.birthDate}
@@ -145,7 +147,7 @@ export function ProfileMyPagePanel() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className={labelClass}>
-              핸드폰
+              {t("profile.field.phone")}
               <input
                 type="tel"
                 autoComplete="tel"
@@ -157,7 +159,7 @@ export function ProfileMyPagePanel() {
             </label>
 
             <label className={labelClass}>
-              이메일
+              {t("profile.field.email")}
               <input
                 type="email"
                 required
@@ -172,7 +174,7 @@ export function ProfileMyPagePanel() {
 
           <div>
             <div className="flex items-center justify-between gap-2">
-              <span className={labelClass}>주소</span>
+              <span className={labelClass}>{t("profile.field.address")}</span>
               <button
                 type="button"
                 onClick={() => setSameModalOpen(true)}
@@ -206,14 +208,16 @@ export function ProfileMyPagePanel() {
             )}
           </div>
 
-          <p className="text-xs text-gray-400">로그인 방식: {user.authProvider || "local"}</p>
+          <p className="text-xs text-gray-400">
+            {t("profile.loginMethod")}: {user.authProvider || "local"}
+          </p>
 
           <button
             type="submit"
             disabled={loading}
             className="w-full rounded-full bg-[var(--pink-accent)] py-3 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
           >
-            {loading ? "저장 중..." : "저장"}
+            {loading ? t("profile.saving") : t("profile.save")}
           </button>
         </form>
 

@@ -2,16 +2,15 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import {
   INQUIRY_PAGE_SIZE,
-  inquiryCategoryLabel,
-  inquiryStatusLabel,
 } from "@/lib/inquiry-labels";
 import { publishInquiryReplyUpdated, subscribeInquiryUpdates } from "@/lib/inquiry-sync";
 import type { Inquiry } from "@/lib/types";
@@ -34,6 +33,7 @@ function parseFilter(raw: string | null): InquiryFilter {
 }
 
 function ErpInquiriesContent() {
+  const { t, tFmt } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -56,7 +56,7 @@ function ErpInquiriesContent() {
     try {
       const data = await api<{ inquiries: Inquiry[] }>(
         `/api/admin/inquiries?_=${Date.now()}`,
-        { token: getToken(), cache: "no-store" },
+        { token: getErpToken(), cache: "no-store" },
       );
       const prev = knownIdsRef.current;
       const incoming = data.inquiries;
@@ -144,6 +144,16 @@ function ErpInquiriesContent() {
     );
   }
 
+  const pendingCount = inquiries.filter((i) => i.status === "pending").length;
+
+  function categoryLabel(category: Inquiry["category"]) {
+    return t(`erp.users.inquiry.category.${category}`);
+  }
+
+  function statusLabel(status: Inquiry["status"]) {
+    return t(`erp.users.inquiry.status.${status}`);
+  }
+
   async function submitReply() {
     if (!selected || !reply.trim()) return;
     setSaving(true);
@@ -153,45 +163,46 @@ function ErpInquiriesContent() {
         `/api/admin/inquiries/${selected.id}/replies`,
         {
           method: "POST",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ body: reply }),
         },
       );
       setSelected(data.inquiry);
       setReply("");
-      showSaveSuccess({ message: "등록되었습니다", subMessage: "답변이 등록되었습니다." });
+      showSaveSuccess({
+        message: t("erp.common.registeredTitle"),
+        subMessage: t("erp.users.inquiries.replyRegisteredMsg"),
+      });
       publishInquiryReplyUpdated();
       load(true);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "답변 등록에 실패했습니다.");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.users.inquiries.replyFailed"));
     } finally {
       setSaving(false);
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("이 문의를 삭제할까요?")) return;
+    if (!confirm(t("erp.users.inquiries.confirmDelete"))) return;
     await api(`/api/admin/inquiries/${id}`, {
       method: "DELETE",
-      token: getToken(),
+      token: getErpToken(),
     });
     if (selected?.id === id) setSelected(null);
     load(true);
   }
 
-  const pendingCount = inquiries.filter((i) => i.status === "pending").length;
-
   return (
     <ErpPageShell
-      title="1:1 문의"
-      description="회원이 남긴 1:1 문의를 확인하고 답변할 수 있습니다. 새 문의는 실시간으로 반영됩니다."
+      titleKey="erp.nav.usersInquiries"
+      descriptionKey="erp.users.inquiries.description"
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {(
           [
-            { key: "all", label: "전체" },
-            { key: "pending", label: "답변 대기" },
-            { key: "answered", label: "답변 완료" },
+            { key: "all", labelKey: "erp.users.inquiries.filterAll" },
+            { key: "pending", labelKey: "erp.users.inquiries.filterPending" },
+            { key: "answered", labelKey: "erp.users.inquiries.filterAnswered" },
           ] as const
         ).map((tab) => (
           <button
@@ -204,12 +215,15 @@ function ErpInquiriesContent() {
                 : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
             }`}
           >
-            {tab.label}
+            {t(tab.labelKey)}
             {tab.key === "pending" && pendingCount > 0 ? ` (${pendingCount})` : ""}
           </button>
         ))}
         <span className="text-xs text-gray-400">
-          · 총 {total}건 · {INQUIRY_PAGE_SIZE}개씩 · 2초마다 자동 갱신
+          {tFmt("erp.users.inquiries.summary", {
+            total,
+            pageSize: INQUIRY_PAGE_SIZE,
+          })}
         </span>
       </div>
 
@@ -219,19 +233,19 @@ function ErpInquiriesContent() {
         <div>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             {loading ? (
-              <p className="p-6 text-sm text-gray-400">불러오는 중…</p>
+              <p className="p-6 text-sm text-gray-400">{t("erp.common.loading")}</p>
             ) : pageItems.length === 0 ? (
-              <p className="p-6 text-sm text-gray-400">등록된 문의가 없습니다.</p>
+              <p className="p-6 text-sm text-gray-400">{t("erp.users.inquiries.noInquiries")}</p>
             ) : (
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
                   <tr>
-                    <th className="px-3 py-2 font-medium">No</th>
-                    <th className="px-3 py-2 font-medium">접수일</th>
-                    <th className="px-3 py-2 font-medium">이름</th>
-                    <th className="hidden px-3 py-2 font-medium sm:table-cell">유형</th>
-                    <th className="px-3 py-2 font-medium">제목</th>
-                    <th className="px-3 py-2 font-medium">상태</th>
+                    <th className="px-3 py-2 font-medium">{t("erp.users.col.no")}</th>
+                    <th className="px-3 py-2 font-medium">{t("erp.users.inquiries.colReceivedAt")}</th>
+                    <th className="px-3 py-2 font-medium">{t("erp.users.col.name")}</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">{t("erp.users.inquiries.colType")}</th>
+                    <th className="px-3 py-2 font-medium">{t("erp.users.inquiries.colSubject")}</th>
+                    <th className="px-3 py-2 font-medium">{t("erp.common.status")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -255,7 +269,7 @@ function ErpInquiriesContent() {
                       </td>
                       <td className="px-3 py-2.5">{inq.userName || "-"}</td>
                       <td className="hidden px-3 py-2.5 text-xs sm:table-cell">
-                        {inquiryCategoryLabel(inq.category)}
+                        {categoryLabel(inq.category)}
                       </td>
                       <td className="max-w-[10rem] truncate px-3 py-2.5 font-medium">
                         {inq.subject}
@@ -273,7 +287,7 @@ function ErpInquiriesContent() {
                               : "bg-amber-100 text-amber-700"
                           }`}
                         >
-                          {inquiryStatusLabel(inq.status)}
+                          {statusLabel(inq.status)}
                         </span>
                       </td>
                     </tr>
@@ -294,7 +308,7 @@ function ErpInquiriesContent() {
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           {!selected ? (
             <p className="py-12 text-center text-sm text-gray-400">
-              왼쪽 목록에서 문의를 선택하세요.
+              {t("erp.users.inquiries.selectHint")}
             </p>
           ) : (
             <div className="space-y-4">
@@ -308,41 +322,41 @@ function ErpInquiriesContent() {
                   onClick={() => remove(selected.id)}
                   className="shrink-0 text-xs text-red-500 hover:underline"
                 >
-                  삭제
+                  {t("erp.common.delete")}
                 </button>
               </div>
 
               <dl className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                 <div>
-                  <dt className="text-gray-400">이름</dt>
+                  <dt className="text-gray-400">{t("erp.users.col.name")}</dt>
                   <dd>{selected.userName}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-400">연락처</dt>
+                  <dt className="text-gray-400">{t("erp.users.col.phone")}</dt>
                   <dd>{selected.userPhone || "-"}</dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-gray-400">이메일</dt>
+                  <dt className="text-gray-400">{t("erp.users.col.email")}</dt>
                   <dd>{selected.userEmail}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-400">유형</dt>
-                  <dd>{inquiryCategoryLabel(selected.category)}</dd>
+                  <dt className="text-gray-400">{t("erp.users.inquiries.colType")}</dt>
+                  <dd>{categoryLabel(selected.category)}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-400">주문번호</dt>
+                  <dt className="text-gray-400">{t("erp.users.inquiries.colOrderId")}</dt>
                   <dd>{selected.orderId || "-"}</dd>
                 </div>
               </dl>
 
               <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <p className="mb-1 text-xs font-medium text-gray-500">문의 내용</p>
+                <p className="mb-1 text-xs font-medium text-gray-500">{t("erp.users.inquiries.bodyLabel")}</p>
                 <p className="whitespace-pre-wrap text-sm text-gray-800">{selected.body}</p>
               </div>
 
               {selected.replies.map((r) => (
                 <div key={r.id} className="rounded-lg border border-sky-100 bg-sky-50 p-3">
-                  <p className="text-xs font-medium text-sky-700">관리자 답변</p>
+                  <p className="text-xs font-medium text-sky-700">{t("erp.users.inquiries.adminReply")}</p>
                   <p className="mt-1 text-[11px] text-gray-400">{formatDate(r.createdAt)}</p>
                   <p className="mt-2 whitespace-pre-wrap text-sm">{r.body}</p>
                 </div>
@@ -350,14 +364,14 @@ function ErpInquiriesContent() {
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">
-                  답변 작성
+                  {t("erp.users.inquiries.replyLabel")}
                 </label>
                 <textarea
                   rows={5}
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="고객에게 전달할 답변을 입력하세요."
+                  placeholder={t("erp.users.inquiries.replyPlaceholder")}
                 />
                 <ErpFormActions className="mt-2">
                   <button
@@ -366,7 +380,7 @@ function ErpInquiriesContent() {
                     onClick={submitReply}
                     className="rounded-lg bg-[#1e293b] px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    {saving ? "등록 중…" : "답변 등록"}
+                    {saving ? t("erp.common.registering") : t("erp.users.inquiries.submitReply")}
                   </button>
                 </ErpFormActions>
               </div>
@@ -378,9 +392,16 @@ function ErpInquiriesContent() {
   );
 }
 
+function InquiriesLoadingFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.usersInquiries">{t("erp.common.loading")}</ErpPageShell>
+  );
+}
+
 export default function ErpInquiriesPage() {
   return (
-    <Suspense fallback={<ErpPageShell title="1:1 문의">불러오는 중…</ErpPageShell>}>
+    <Suspense fallback={<InquiriesLoadingFallback />}>
       <ErpInquiriesContent />
     </Suspense>
   );

@@ -25,6 +25,7 @@ import inquiryRoutes from "./routes/inquiries.js";
 import adminInquiryRoutes from "./routes/admin-inquiries.js";
 import messageRoutes from "./routes/messages.js";
 import pointsRoutes from "./routes/points.js";
+import adminPermissionsRoutes from "./routes/admin-permissions.js";
 
 export function createApp() {
   const app = express();
@@ -64,6 +65,7 @@ export function createApp() {
   app.use("/api/reviews", reviewRoutes);
   app.use("/api/orders", orderRoutes);
   app.use("/api/admin", adminRoutes);
+  app.use("/api/admin/permissions", adminPermissionsRoutes);
   app.use("/api/articles", articleRoutes);
   app.use("/api/admin/articles", adminArticleRoutes);
   app.use("/api/admin/content", adminContentRoutes);

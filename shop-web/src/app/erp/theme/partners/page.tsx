@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpImageUpload } from "@/components/erp/ErpImageUpload";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import {
   EMPTY_PARTNER_SLOT,
   normalizePartnerBanners,
@@ -36,6 +37,8 @@ function SideEditor({
   slots: PartnerBannerSlot[];
   onChange: (side: Side, slots: PartnerBannerSlot[]) => void;
 }) {
+  const { t, tFmt } = useI18n();
+
   function updateSlot(index: number, patch: Partial<PartnerBannerSlot>) {
     const next = slots.map((s, i) => (i === index ? { ...s, ...patch } : s));
     onChange(side, next);
@@ -64,32 +67,34 @@ function SideEditor({
 
       {slots.length === 0 ? (
         <p className="mb-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
-          등록된 배너가 없습니다. 아래 추가 버튼으로 배너를 넣을 수 있습니다.
+          {t("erp.theme.partners.noBanners")}
         </p>
       ) : (
         <div className="space-y-4">
           {slots.map((slot, index) => (
             <div key={`${side}-${index}`} className="rounded-lg border border-pink-100 bg-pink-50/30 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-gray-700">배너 {index + 1}</p>
+                <p className="text-xs font-medium text-gray-700">
+                  {tFmt("erp.theme.partners.bannerN", { n: index + 1 })}
+                </p>
                 <button
                   type="button"
                   onClick={() => removeSlot(index)}
                   className="text-xs text-red-500 hover:underline"
                 >
-                  삭제
+                  {t("erp.common.delete")}
                 </button>
               </div>
               <div className="mx-auto max-w-[11rem]">
                 <ErpImageUpload
                   variant="partner"
-                  label="정사각형 이미지"
+                  label={t("erp.theme.partners.squareImage")}
                   value={slot.image}
                   onChange={(url) => updateSlot(index, { image: url })}
                 />
               </div>
               <label className="mt-3 block text-sm">
-                <span className="mb-1 block text-xs text-gray-600">링크 주소 (클릭 시 새 창)</span>
+                <span className="mb-1 block text-xs text-gray-600">{t("erp.theme.partners.linkLabel")}</span>
                 <input
                   type="url"
                   value={slot.url}
@@ -109,7 +114,7 @@ function SideEditor({
           onClick={addSlot}
           className="mt-3 w-full rounded-lg border border-dashed border-gray-300 py-2 text-sm text-gray-600 hover:border-[var(--pink-accent)] hover:text-[var(--pink-accent)]"
         >
-          + 배너 추가
+          {t("erp.theme.partners.addBanner")}
         </button>
       )}
     </div>
@@ -117,6 +122,7 @@ function SideEditor({
 }
 
 export default function ErpPartnerBannersPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState<PartnerBanners>({ left: [], right: [] });
   const { showSaveSuccess } = useErpSaveSuccess();
   const [errorMsg, setErrorMsg] = useState("");
@@ -126,7 +132,7 @@ export default function ErpPartnerBannersPage() {
     try {
       const data = await api<{ partnerBanners: PartnerBanners }>(
         "/api/admin/settings/partner-banners",
-        { token: getToken() },
+        { token: getErpToken() },
       );
       setForm(toEditable(normalizePartnerBanners(data.partnerBanners)));
     } catch {
@@ -151,7 +157,7 @@ export default function ErpPartnerBannersPage() {
         "/api/admin/settings/partner-banners",
         {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ partnerBanners: payload }),
         },
       );
@@ -159,20 +165,17 @@ export default function ErpPartnerBannersPage() {
       setForm(toEditable(next));
       publishPartnerBannersUpdate(next);
       showSaveSuccess({
-        subMessage: "쇼핑몰 좌·우 여백에 실시간 반영됩니다.",
+        subMessage: t("erp.theme.partners.savedSub"),
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장에 실패했습니다.");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <ErpPageShell
-      title="제휴배너"
-      description="쇼핑몰 본문 좌·우 여백에 정사각형 배너를 최대 3개씩 노출합니다. 이미지가 있는 슬롯만 표시됩니다."
-    >
+    <ErpPageShell titleKey="erp.nav.themePartners" descriptionKey="erp.theme.partners.description">
       {errorMsg ? (
         <p className="mb-2 rounded-lg bg-red-50 px-3 py-1 text-sm text-red-700" aria-live="polite">
           {errorMsg}
@@ -180,23 +183,23 @@ export default function ErpPartnerBannersPage() {
       ) : null}
 
       <div className="mb-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-relaxed text-gray-600">
-        <p>· 왼쪽 최대 3개 · 오른쪽 최대 3개</p>
-        <p>· 배너 크기는 상품 카드 이미지와 같은 정사각형 비율입니다</p>
-        <p>· 링크 입력 시 클릭하면 새 창에서 열립니다</p>
-        <p>· 업로드 이미지는 정사각형으로 자동 크롭·WebP 변환됩니다</p>
-        <p>· 넓은 화면(약 1600px 이상) 좌·우 여백에만 표시되며 본문 레이아웃은 변하지 않습니다</p>
+        <p>{t("erp.theme.partners.hint1")}</p>
+        <p>{t("erp.theme.partners.hint2")}</p>
+        <p>{t("erp.theme.partners.hint3")}</p>
+        <p>{t("erp.theme.partners.hint4")}</p>
+        <p>{t("erp.theme.partners.hint5")}</p>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <SideEditor
           side="left"
-          label="왼쪽 배너"
+          label={t("erp.theme.partners.left")}
           slots={form.left}
           onChange={updateSide}
         />
         <SideEditor
           side="right"
-          label="오른쪽 배너"
+          label={t("erp.theme.partners.right")}
           slots={form.right}
           onChange={updateSide}
         />
@@ -208,7 +211,7 @@ export default function ErpPartnerBannersPage() {
           onClick={() => setForm({ left: [], right: [] })}
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
         >
-          전체 비우기
+          {t("erp.theme.partners.clearAll")}
         </button>
         <button
           type="button"
@@ -216,7 +219,7 @@ export default function ErpPartnerBannersPage() {
           onClick={save}
           className="rounded-lg bg-[#1e293b] px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          {loading ? "저장 중…" : "저장"}
+          {loading ? t("erp.common.saving") : t("erp.common.save")}
         </button>
       </ErpFormActions>
     </ErpPageShell>

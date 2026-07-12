@@ -1,3 +1,6 @@
+import { resolveCatalogItemLabel } from "@/lib/catalog-i18n";
+import type { Locale } from "@/i18n/messages";
+
 export type AnalyticsBoard = {
   periodDays: number;
   range: { from: string; to: string };
@@ -74,3 +77,11 @@ export const CATEGORY_LABELS: Record<string, string> = {
   bundles: "번들",
   solutions: "솔루션",
 };
+
+export function analyticsCategoryLabel(categoryId: string, locale: Locale = "ko"): string {
+  return resolveCatalogItemLabel(
+    { id: categoryId, label: CATEGORY_LABELS[categoryId] || categoryId },
+    locale,
+    { kind: "filterCategory" },
+  );
+}

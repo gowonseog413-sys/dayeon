@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
+import { resolveCatalogItemLabel, resolveFilterFieldLabel } from "@/lib/catalog-i18n";
 import { CatalogUsageModal } from "@/components/erp/CatalogUsageModal";
 import { FilterFieldDeleteModal } from "@/components/erp/FilterFieldDeleteModal";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import {
   FILTER_FIELDS_WITH_OPTIONS,
   type FilterOptionFieldId,
@@ -22,6 +24,7 @@ import {
 type SelectedFieldId = "category" | FilterOptionFieldId;
 
 export default function ErpFilterCatalogPage() {
+  const { t, locale } = useI18n();
   const { catalog, loading, reload } = useProductCatalog();
   const { showSaveSuccess } = useErpSaveSuccess();
   const [errorMsg, setErrorMsg] = useState("");
@@ -35,7 +38,7 @@ export default function ErpFilterCatalogPage() {
   const [usageAction, setUsageAction] = useState<"edit" | "delete">("delete");
   const [usageCount, setUsageCount] = useState(0);
   const [usageProducts, setUsageProducts] = useState<CatalogUsageProduct[]>([]);
-  const [usageTypeLabel, setUsageTypeLabel] = useState("필터 옵션");
+  const [usageTypeLabel, setUsageTypeLabel] = useState("");
   const [pendingEdit, setPendingEdit] = useState<{
     fieldId: SelectedFieldId;
     id: string;
@@ -86,22 +89,25 @@ export default function ErpFilterCatalogPage() {
       if (selectedFieldId === "category") {
         await catalogApi("/api/admin/catalog/filter-categories", {
           method: "POST",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ label: optionForm.label }),
         });
       } else {
         await catalogApi(`/api/admin/catalog/filter-options/${selectedFieldId}`, {
           method: "POST",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ label: optionForm.label }),
         });
       }
       setOptionForm({ label: "" });
       notifyCatalogUpdated();
       await reload();
-      showSaveSuccess({ message: "등록되었습니다", subMessage: "필터 옵션이 추가되었습니다." });
+      showSaveSuccess({
+        message: t("erp.common.registeredTitle"),
+        subMessage: t("erp.products.filters.optionAdded"),
+      });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "추가 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.products.catalog.addFailed"));
     }
   }
 
@@ -117,13 +123,13 @@ export default function ErpFilterCatalogPage() {
       if (fieldId === "category") {
         await catalogApi(`/api/admin/catalog/filter-categories/${item.id}`, {
           method: "PUT",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ label, newId, force }),
         });
       } else {
         await catalogApi(`/api/admin/catalog/filter-options/${fieldId}/${item.id}`, {
           method: "PUT",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ label, newId, force }),
         });
       }
@@ -134,14 +140,18 @@ export default function ErpFilterCatalogPage() {
     } catch (err) {
       if (!force && isInUseError(err)) {
         setUsageAction("edit");
-        setUsageTypeLabel(selectedField?.label || "필터 옵션");
+        setUsageTypeLabel(
+          selectedField
+            ? resolveFilterFieldLabel(selectedField, locale)
+            : t("erp.products.filters.defaultOptionLabel"),
+        );
         setUsageCount(err.data.count);
         setUsageProducts(err.data.products);
         setPendingEdit({ fieldId, id: item.id, label, newId });
         setUsageOpen(true);
         return;
       }
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     }
   }
 
@@ -151,28 +161,32 @@ export default function ErpFilterCatalogPage() {
       if (fieldId === "category") {
         await catalogApi(`/api/admin/catalog/filter-categories/${id}${force ? "?force=1" : ""}`, {
           method: "DELETE",
-          token: getToken(),
+          token: getErpToken(),
         });
       } else {
         await catalogApi(
           `/api/admin/catalog/filter-options/${fieldId}/${id}${force ? "?force=1" : ""}`,
-          { method: "DELETE", token: getToken() },
+          { method: "DELETE", token: getErpToken() },
         );
       }
       notifyCatalogUpdated();
       await reload();
-      showSaveSuccess({ message: "삭제되었습니다" });
+      showSaveSuccess({ message: t("erp.common.deletedTitle") });
     } catch (err) {
       if (!force && isInUseError(err)) {
         setUsageAction("delete");
-        setUsageTypeLabel(selectedField?.label || "필터 옵션");
+        setUsageTypeLabel(
+          selectedField
+            ? resolveFilterFieldLabel(selectedField, locale)
+            : t("erp.products.filters.defaultOptionLabel"),
+        );
         setUsageCount(err.data.count);
         setUsageProducts(err.data.products);
         setPendingDelete({ fieldId, id });
         setUsageOpen(true);
         return;
       }
-      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.deleteFailed"));
     }
   }
 
@@ -184,7 +198,7 @@ export default function ErpFilterCatalogPage() {
         productCount: number;
         optionCount: number;
         products: CatalogUsageProduct[];
-      }>(`/api/admin/catalog/filter-fields/${item.id}/usage`, { token: getToken() });
+      }>(`/api/admin/catalog/filter-fields/${item.id}/usage`, { token: getErpToken() });
       setFieldDeleteTarget(item);
       setFieldDeleteWarn(data.hasDependencies);
       setFieldDeleteProductCount(data.productCount);
@@ -192,7 +206,7 @@ export default function ErpFilterCatalogPage() {
       setFieldDeleteProducts(data.products);
       setFieldDeleteOpen(true);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "삭제 확인 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.products.filters.deleteCheckFailed"));
     }
   }
 
@@ -202,7 +216,7 @@ export default function ErpFilterCatalogPage() {
     try {
       await catalogApi(`/api/admin/catalog/filter-fields/${fieldDeleteTarget.id}${force ? "?force=1" : ""}`, {
         method: "DELETE",
-        token: getToken(),
+        token: getErpToken(),
       });
       if (selectedFieldId === fieldDeleteTarget.id) {
         const remaining = catalog.filterFields.filter((f) => f.id !== fieldDeleteTarget.id);
@@ -212,7 +226,10 @@ export default function ErpFilterCatalogPage() {
       setFieldDeleteTarget(null);
       notifyCatalogUpdated();
       await reload();
-      showSaveSuccess({ message: "삭제되었습니다", subMessage: "필터 항목이 삭제되었습니다." });
+      showSaveSuccess({
+        message: t("erp.common.deletedTitle"),
+        subMessage: t("erp.products.filters.fieldDeleted"),
+      });
     } catch (err) {
       if (!force && isInUseError(err)) {
         setFieldDeleteWarn(true);
@@ -221,7 +238,7 @@ export default function ErpFilterCatalogPage() {
         setFieldDeleteProducts(err.data.products);
         return;
       }
-      setErrorMsg(err instanceof Error ? err.message : "삭제 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.deleteFailed"));
     }
   }
 
@@ -230,7 +247,7 @@ export default function ErpFilterCatalogPage() {
     try {
       await catalogApi(`/api/admin/catalog/filter-fields/${item.id}`, {
         method: "PUT",
-        token: getToken(),
+        token: getErpToken(),
         body: JSON.stringify({ label }),
       });
       setEditField(null);
@@ -238,7 +255,7 @@ export default function ErpFilterCatalogPage() {
       await reload();
       showSaveSuccess();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장 실패");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     }
   }
 
@@ -250,13 +267,7 @@ export default function ErpFilterCatalogPage() {
           : catalog.filterFieldOptions[pendingEdit.fieldId];
       const item = items.find((c) => c.id === pendingEdit.id);
       if (item) {
-        await saveOption(
-          pendingEdit.fieldId,
-          item,
-          pendingEdit.label,
-          pendingEdit.newId,
-          true,
-        );
+        await saveOption(pendingEdit.fieldId, item, pendingEdit.label, pendingEdit.newId, true);
       }
     } else if (usageAction === "delete" && pendingDelete) {
       await deleteOption(pendingDelete.fieldId, pendingDelete.id, true);
@@ -268,20 +279,17 @@ export default function ErpFilterCatalogPage() {
 
   return (
     <ErpPageShell
-      title="필터 카데고리"
-      description="쇼핑몰 상품 목록 좌측 맞춤 필터에 표시되는 항목과 카테고리 옵션을 관리합니다."
+      titleKey="erp.nav.productsFilters"
+      descriptionKey="erp.products.filters.description"
     >
       {errorMsg ? <p className="mb-2 text-sm text-red-600">{errorMsg}</p> : null}
       {loading ? (
-        <p className="text-sm text-gray-400">불러오는 중…</p>
+        <p className="text-sm text-gray-400">{t("erp.common.loading")}</p>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">맞춤 필터 · 필터 항목</h3>
-            <p className="mb-3 text-xs text-gray-500">
-              항목을 클릭하면 오른쪽에서 해당 필터의 옵션을 관리할 수 있습니다. 표시 이름만 수정할 수 있으며 코드는
-              고정됩니다.
-            </p>
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">{t("erp.products.filters.fieldsTitle")}</h3>
+            <p className="mb-3 text-xs text-gray-500">{t("erp.products.filters.fieldsDesc")}</p>
             <ul className="divide-y rounded-lg border">
               {catalog.filterFields.map((f) => (
                 <li key={f.id}>
@@ -297,10 +305,10 @@ export default function ErpFilterCatalogPage() {
                         className="text-xs text-[var(--pink-accent)]"
                         onClick={() => saveFieldLabel(f, fieldLabel)}
                       >
-                        저장
+                        {t("erp.common.save")}
                       </button>
                       <button type="button" className="text-xs text-gray-500" onClick={() => setEditField(null)}>
-                        취소
+                        {t("erp.common.cancel")}
                       </button>
                     </div>
                   ) : (
@@ -313,7 +321,7 @@ export default function ErpFilterCatalogPage() {
                       onClick={() => selectField(f.id)}
                     >
                       <div>
-                        <p className="font-medium">{f.label}</p>
+                        <p className="font-medium">{resolveFilterFieldLabel(f, locale)}</p>
                         <p className="font-mono text-xs text-gray-400">{f.id}</p>
                       </div>
                       <div className="flex shrink-0 gap-2 text-xs">
@@ -326,7 +334,7 @@ export default function ErpFilterCatalogPage() {
                             setFieldLabel(f.label);
                           }}
                         >
-                          수정
+                          {t("erp.common.edit")}
                         </button>
                         <button
                           type="button"
@@ -336,7 +344,7 @@ export default function ErpFilterCatalogPage() {
                             void requestDeleteField(f);
                           }}
                         >
-                          삭제
+                          {t("erp.common.delete")}
                         </button>
                       </div>
                     </div>
@@ -348,19 +356,22 @@ export default function ErpFilterCatalogPage() {
 
           <section className="rounded-xl border border-gray-200 bg-white p-4">
             <h3 className="mb-1 text-sm font-semibold text-gray-800">
-              필터 옵션
+              {t("erp.products.filters.optionsTitle")}
               {selectedField ? (
-                <span className="ml-1.5 font-normal text-[var(--pink-accent)]">· {selectedField.label}</span>
+                <span className="ml-1.5 font-normal text-[var(--pink-accent)]">
+                  · {selectedField ? resolveFilterFieldLabel(selectedField, locale) : ""}
+                </span>
               ) : null}
             </h3>
             <p className="mb-3 text-xs text-gray-500">
               {hasOptionList
-                ? "쇼핑몰 드롭다운에 표시될 선택지를 추가·수정·삭제합니다."
-                : "가격·할인 상품만 항목은 쇼핑몰에서 직접 입력·체크로 사용됩니다."}
+                ? t("erp.products.filters.optionsDescWithList")
+                : t("erp.products.filters.optionsDescNoList")}
             </p>
 
             {hasOptionList ? (
               <FilterOptionList
+                fieldId={selectedFieldId}
                 items={currentOptions}
                 form={optionForm}
                 setForm={setOptionForm}
@@ -372,13 +383,11 @@ export default function ErpFilterCatalogPage() {
               />
             ) : (
               <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-                이 필터는 옵션 목록이 없습니다.
+                {t("erp.products.filters.noOptions")}
               </div>
             )}
 
-            <p className="mt-4 text-xs text-gray-400">
-              쇼핑몰 좌측 필터 제목은 &quot;맞춤 필터&quot;로 표시됩니다.
-            </p>
+            <p className="mt-4 text-xs text-gray-400">{t("erp.products.filters.footerNote")}</p>
           </section>
         </div>
       )}
@@ -415,6 +424,7 @@ export default function ErpFilterCatalogPage() {
 }
 
 function FilterOptionList({
+  fieldId,
   items,
   form,
   setForm,
@@ -424,6 +434,7 @@ function FilterOptionList({
   onSave,
   onDelete,
 }: {
+  fieldId: SelectedFieldId;
   items: CatalogItem[];
   form: { label: string };
   setForm: (v: { label: string }) => void;
@@ -433,25 +444,33 @@ function FilterOptionList({
   onSave: (item: CatalogItem, label: string, newId: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t, locale } = useI18n();
   const [editLabel, setEditLabel] = useState("");
+
+  function displayOptionLabel(item: CatalogItem) {
+    return resolveCatalogItemLabel(item, locale, {
+      kind: fieldId === "category" ? "filterCategory" : "filterOption",
+      fieldId,
+    });
+  }
 
   return (
     <>
       <form onSubmit={onAdd} className="mb-3 grid gap-2">
         <input
           required
-          placeholder="표시 이름*"
+          placeholder={t("erp.products.catalog.displayNamePlaceholder")}
           value={form.label}
           onChange={(e) => setForm({ label: e.target.value })}
           className="rounded border px-2 py-1.5 text-sm"
         />
         <button type="submit" className="rounded bg-[var(--pink-accent)] py-1.5 text-xs text-white">
-          추가
+          {t("erp.common.add")}
         </button>
       </form>
       <ul className="divide-y rounded-lg border">
         {items.length === 0 ? (
-          <li className="px-3 py-6 text-center text-xs text-gray-400">항목 없음</li>
+          <li className="px-3 py-6 text-center text-xs text-gray-400">{t("erp.products.catalog.noItems")}</li>
         ) : (
           items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
@@ -468,17 +487,17 @@ function FilterOptionList({
                       className="text-[var(--pink-accent)]"
                       onClick={() => onSave(item, editLabel, item.id)}
                     >
-                      저장
+                      {t("erp.common.save")}
                     </button>
                     <button type="button" className="text-gray-500" onClick={() => setEditing(null)}>
-                      취소
+                      {t("erp.common.cancel")}
                     </button>
                   </div>
                 </div>
               ) : (
                 <>
                   <div>
-                    <p className="font-medium">{item.label}</p>
+                    <p className="font-medium">{displayOptionLabel(item)}</p>
                     <p className="font-mono text-xs text-gray-400">{item.id}</p>
                   </div>
                   <div className="text-xs">
@@ -490,10 +509,10 @@ function FilterOptionList({
                         setEditLabel(item.label);
                       }}
                     >
-                      수정
+                      {t("erp.common.edit")}
                     </button>
                     <button type="button" className="text-red-500" onClick={() => onDelete(item.id)}>
-                      삭제
+                      {t("erp.common.delete")}
                     </button>
                   </div>
                 </>

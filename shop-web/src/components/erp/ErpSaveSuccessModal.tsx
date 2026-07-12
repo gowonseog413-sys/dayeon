@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useI18n } from "@/components/I18nProvider";
 
 type Props = {
   open: boolean;
@@ -12,11 +13,14 @@ type Props = {
 
 export function ErpSaveSuccessModal({
   open,
-  message = "저장되었습니다.",
+  message,
   subMessage,
   onClose,
   autoCloseMs = 2800,
 }: Props) {
+  const { t } = useI18n();
+  const displayMessage = message ?? t("erp.save.title");
+
   useEffect(() => {
     if (!open || autoCloseMs <= 0) return;
     const id = window.setTimeout(onClose, autoCloseMs);
@@ -60,7 +64,7 @@ export function ErpSaveSuccessModal({
           </svg>
         </div>
         <h2 id="erp-save-success-title" className="text-lg font-bold text-[var(--pink-deep)]">
-          {message}
+          {displayMessage}
         </h2>
         {subMessage ? <p className="mt-2 text-sm text-gray-600">{subMessage}</p> : null}
         <button
@@ -68,7 +72,7 @@ export function ErpSaveSuccessModal({
           onClick={onClose}
           className="mt-6 w-full rounded-full bg-[#1e293b] py-2.5 text-sm font-medium text-white transition hover:bg-[#0f172a]"
         >
-          확인
+          {t("erp.save.ok")}
         </button>
       </div>
     </div>

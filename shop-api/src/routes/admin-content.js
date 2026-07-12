@@ -2,6 +2,7 @@ import { Router } from "express";
 import { readDb, updateDb } from "../db.js";
 import { adminRequired } from "../middleware/auth.js";
 import { DEFAULT_LEGAL, LEGAL_DOCS, LEGAL_LOCALES } from "../default-legal-content.js";
+import { CMS_LOCALES, normalizeCmsPageEntry } from "../cms-locales.js";
 import {
   DEFAULT_SITE_CONTENT,
   PAGE_KEYS,
@@ -28,6 +29,21 @@ router.get("/", (_req, res) => {
   res.json({ siteContent: getSiteContent() });
 });
 
+function saveCmsPageEntry(prevEntry, locale, body) {
+  const { title, sections, html, email } = body;
+  const normalized = normalizeCmsPageEntry(prevEntry);
+  const prev = normalized[locale] || {};
+  normalized[locale] = {
+    ...prev,
+    ...(title !== undefined ? { title: String(title).trim() } : {}),
+    ...(html !== undefined
+      ? { html: String(html), sections: [] }
+      : { sections: Array.isArray(sections) ? sections : prev.sections || [] }),
+    ...(email !== undefined ? { email: String(email).trim() } : {}),
+  };
+  return normalized;
+}
+
 router.put("/pages/:key", (req, res) => {
   if (!PAGE_KEYS.includes(req.params.key)) {
     return res.status(400).json({ error: "잘못된 페이지 키" });
@@ -38,16 +54,33 @@ router.put("/pages/:key", (req, res) => {
   }
   updateDb((d) => {
     if (!d.siteContent) d.siteContent = structuredClone(DEFAULT_SITE_CONTENT);
-    const prev = d.siteContent.pages[req.params.key] || {};
-    d.siteContent.pages[req.params.key] = {
-      ...prev,
-      title: title.trim(),
-      ...(html !== undefined
-        ? { html: String(html), sections: [] }
-        : { sections: Array.isArray(sections) ? sections : prev.sections || [] }),
-    };
+    d.siteContent.pages[req.params.key] = saveCmsPageEntry(
+      d.siteContent.pages[req.params.key],
+      "ko",
+      { title, sections, html },
+    );
   });
   res.json({ page: getSiteContent().pages[req.params.key] });
+});
+
+router.put("/pages/:key/:locale", (req, res) => {
+  const { key, locale } = req.params;
+  if (!PAGE_KEYS.includes(key) || !CMS_LOCALES.includes(locale)) {
+    return res.status(400).json({ error: "잘못된 페이지 키 또는 언어" });
+  }
+  const { title, sections, html } = req.body;
+  if (!title?.trim()) {
+    return res.status(400).json({ error: "제목을 입력해 주세요." });
+  }
+  updateDb((d) => {
+    if (!d.siteContent) d.siteContent = structuredClone(DEFAULT_SITE_CONTENT);
+    d.siteContent.pages[key] = saveCmsPageEntry(d.siteContent.pages[key], locale, {
+      title,
+      sections,
+      html,
+    });
+  });
+  res.json({ page: getSiteContent().pages[key], locale });
 });
 
 router.put("/legal/:doc/:locale", (req, res) => {
@@ -82,17 +115,34 @@ router.put("/support/:key", (req, res) => {
   }
   updateDb((d) => {
     if (!d.siteContent) d.siteContent = structuredClone(DEFAULT_SITE_CONTENT);
-    const prev = d.siteContent.support[req.params.key] || {};
-    d.siteContent.support[req.params.key] = {
-      ...prev,
-      title: title.trim(),
-      ...(html !== undefined
-        ? { html: String(html), sections: [] }
-        : { sections: Array.isArray(sections) ? sections : prev.sections || [] }),
-      ...(req.params.key === "contact" && email !== undefined ? { email: String(email).trim() } : {}),
-    };
+    d.siteContent.support[req.params.key] = saveCmsPageEntry(
+      d.siteContent.support[req.params.key],
+      "ko",
+      { title, sections, html, email: req.params.key === "contact" ? email : undefined },
+    );
   });
   res.json({ page: getSiteContent().support[req.params.key] });
+});
+
+router.put("/support/:key/:locale", (req, res) => {
+  const { key, locale } = req.params;
+  if (!SUPPORT_KEYS.includes(key) || !CMS_LOCALES.includes(locale)) {
+    return res.status(400).json({ error: "잘못된 지원 페이지 키 또는 언어" });
+  }
+  const { title, sections, html, email } = req.body;
+  if (!title?.trim()) {
+    return res.status(400).json({ error: "제목을 입력해 주세요." });
+  }
+  updateDb((d) => {
+    if (!d.siteContent) d.siteContent = structuredClone(DEFAULT_SITE_CONTENT);
+    d.siteContent.support[key] = saveCmsPageEntry(d.siteContent.support[key], locale, {
+      title,
+      sections,
+      html,
+      email: key === "contact" ? email : undefined,
+    });
+  });
+  res.json({ page: getSiteContent().support[key], locale });
 });
 
 router.post("/reset", (_req, res) => {

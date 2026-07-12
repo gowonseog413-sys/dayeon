@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { api } from "@/lib/api";
+import {
+  localizeCategoryTree,
+  localizeFilterCategories,
+  localizeFilterFieldOptions,
+  localizeSections,
+} from "@/lib/catalog-i18n";
 import {
   CATALOG_STORAGE_KEY,
   CATALOG_UPDATED_EVENT,
@@ -52,6 +59,25 @@ export function useShopCatalog() {
   }, [reload]);
 
   return { catalog, loading, reload };
+}
+
+/** 언어에 맞게 메뉴·홈 섹션 라벨 번역 */
+export function useLocalizedShopCatalog() {
+  const { catalog, loading, reload } = useShopCatalog();
+  const { locale } = useI18n();
+
+  const localized = useMemo(
+    () => ({
+      ...catalog,
+      categoryTree: localizeCategoryTree(catalog.categoryTree, locale),
+      sections: localizeSections(catalog.sections, locale),
+      filterCategories: localizeFilterCategories(catalog.filterCategories, locale),
+      filterFieldOptions: localizeFilterFieldOptions(catalog.filterFieldOptions, locale),
+    }),
+    [catalog, locale],
+  );
+
+  return { catalog: localized, loading, reload };
 }
 
 export function treeMainToMegaItems(main: CategoryTreeNode) {

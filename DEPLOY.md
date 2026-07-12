@@ -17,14 +17,24 @@
 > (Spark 무료 플랜만으로는 Functions·Next.js SSR 호스팅이 되지 않습니다.)
 
 ```powershell
-firebase experiments:enable webframeworks
 .\deploy-shop.bat
 ```
 
-또는:
+`deploy-shop.ps1`이 자동으로 처리합니다:
+
+1. `.next/dev` · `.firebase` 캐시 삭제 (SSR 6GB+ 업로드 방지)
+2. `shop-web` 프로덕션 `npm run build`
+3. `shop-api` Functions 배포
+4. `shop-web` Hosting + SSR 배포
+
+> 로컬에서 `npm run dev` 중이면 배포 전에 dev 서버를 끄는 것이 좋습니다.
+
+수동 배포 시에도 **반드시** 빌드 전 캐시 정리:
 
 ```powershell
-firebase deploy --only hosting:shop,functions:shop-api --project dayeon-3856e
+Remove-Item -Recurse -Force shop-web\.next, .firebase -ErrorAction SilentlyContinue
+cd shop-web; npm run build; cd ..
+firebase deploy --only "functions:shop-api:shopApi",hosting:shop --project dayeon-3856e
 ```
 
 Hosting 사이트 `dayeon-shop` 은 이미 생성되어 있습니다.
@@ -46,7 +56,7 @@ Hosting 사이트 `dayeon-shop` 은 이미 생성되어 있습니다.
 | 추천인제도 | https://dayeon-shop.web.app/erp/users/referral |
 | 테마변경 | https://dayeon-shop.web.app/erp/theme |
 
-관리자: `admin@eyesight.local` / `admin1234`
+관리자: `dayeon@naver.com` / `admin1004`
 
 ## 2026-06-06 배포 메모
 

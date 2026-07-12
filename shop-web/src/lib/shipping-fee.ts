@@ -19,13 +19,17 @@ export function calcCartShippingFee(
   return max;
 }
 
-export function formatOrderShippingLabel(fee: number | null | undefined): string {
-  if (fee == null || fee === 0) return "배송비 무료";
+export function formatOrderShippingLabel(
+  fee: number | null | undefined,
+  freeLabel = "배송비 무료",
+): string {
+  if (fee == null || fee === 0) return freeLabel;
   return formatRp(fee);
 }
 
 export function productShippingLabel(
   product: Pick<Product, "shippingFeeCharged" | "shippingFeeAmount">,
+  freeLabel = "배송비 무료",
 ): string {
-  return formatOrderShippingLabel(productShippingFee(product));
+  return formatOrderShippingLabel(productShippingFee(product), freeLabel);
 }

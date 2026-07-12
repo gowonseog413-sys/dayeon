@@ -1,13 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { isFirebaseConfigured } from "@/lib/firebase";
+import { submitContactMessage } from "@/lib/contact-client";
 
 type ConnectionStatus = {
   firebase: boolean;
   slack: boolean;
   slackChannel?: string;
-  slackCategory?: string;
-  slackWorkspace?: string;
 };
 
 export default function Home() {
@@ -18,10 +18,11 @@ export default function Home() {
   const [result, setResult] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/contact")
-      .then((res) => res.json())
-      .then((data: ConnectionStatus) => setStatus(data))
-      .catch(() => setStatus({ firebase: false, slack: false }));
+    setStatus({
+      firebase: isFirebaseConfigured(),
+      slack: false,
+      slackChannel: "TBP · 5 · dayeon · # dayeon-동생사이트",
+    });
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -30,26 +31,20 @@ export default function Home() {
     setResult(null);
 
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, message }),
-      });
+      const trimmedName = name.trim();
+      const trimmedMessage = message.trim();
 
-      const data = (await response.json()) as {
-        ok?: boolean;
-        error?: string;
-        firebase?: boolean;
-        slack?: boolean;
-      };
-
-      if (!response.ok) {
-        throw new Error(data.error ?? "전송에 실패했습니다.");
+      if (!trimmedName || !trimmedMessage) {
+        throw new Error("이름과 메시지를 입력해 주세요.");
       }
 
-      setResult(
-        `전송 완료 · Firebase ${data.firebase ? "저장됨" : "미연결"} · Slack ${data.slack ? "알림 전송" : "웹훅 미설정"}`,
-      );
+      if (trimmedName.length > 100 || trimmedMessage.length > 2000) {
+        throw new Error("입력 길이가 너무 깁니다.");
+      }
+
+      await submitContactMessage(trimmedName, trimmedMessage);
+
+      setResult("전송 완료 · Firebase에 저장되었습니다.");
       setName("");
       setMessage("");
     } catch (error) {
@@ -74,10 +69,10 @@ export default function Home() {
             Firestore에 저장되고 Slack 채널로 알림이 전달됩니다.
           </p>
           <a
-            href="http://localhost:3010"
+            href="https://dayeon-shop.web.app"
             className="inline-flex rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800"
           >
-            EYESIGHT 쇼핑몰 초안 보기 → (localhost:3010)
+            다연 쇼핑몰 보기 →
           </a>
         </section>
 
@@ -132,7 +127,7 @@ export default function Home() {
               disabled={submitting}
               className="rounded-full bg-amber-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? "전송 중..." : "Firebase + Slack으로 전송"}
+              {submitting ? "전송 중..." : "Firebase로 전송"}
             </button>
           </form>
 

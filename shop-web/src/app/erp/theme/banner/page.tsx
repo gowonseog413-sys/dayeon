@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import {
   DEFAULT_INDEX_BANNER,
   normalizeIndexBanner,
@@ -14,13 +15,14 @@ import {
 import { publishIndexBannerUpdate } from "@/lib/index-banner-sync";
 import { LOCALES } from "@/i18n/messages";
 
-const LOCALE_LABEL: Record<string, string> = {
-  ko: "한국어",
-  en: "English",
-  id: "Bahasa Indonesia",
+const LOCALE_LABEL_KEY: Record<string, string> = {
+  ko: "erp.theme.banner.locale.ko",
+  en: "erp.theme.banner.locale.en",
+  id: "erp.theme.banner.locale.id",
 };
 
 export default function ErpIndexBannerPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState<IndexBannerMap>(DEFAULT_INDEX_BANNER);
   const { showSaveSuccess } = useErpSaveSuccess();
   const [errorMsg, setErrorMsg] = useState("");
@@ -30,7 +32,7 @@ export default function ErpIndexBannerPage() {
     try {
       const data = await api<{ indexBanner: IndexBannerMap }>(
         "/api/admin/settings/index-banner",
-        { token: getToken() },
+        { token: getErpToken() },
       );
       setForm(normalizeIndexBanner(data.indexBanner));
     } catch {
@@ -49,26 +51,23 @@ export default function ErpIndexBannerPage() {
         "/api/admin/settings/index-banner",
         {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ indexBanner: form }),
         },
       );
       const next = normalizeIndexBanner(data.indexBanner);
       setForm(next);
       publishIndexBannerUpdate(next);
-      showSaveSuccess({ subMessage: "쇼핑몰 최상단 띠 배너에 실시간 반영됩니다." });
+      showSaveSuccess({ subMessage: t("erp.theme.banner.savedSub") });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장에 실패했습니다.");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <ErpPageShell
-      title="인덱스 상단 문구"
-      description="쇼핑몰 최상단 띠 배너 문구입니다. 언어별로 다르게 설정할 수 있습니다."
-    >
+    <ErpPageShell titleKey="erp.nav.themeBanner" descriptionKey="erp.theme.banner.description">
       {errorMsg ? (
         <p className="mb-2 rounded-lg bg-red-50 px-3 py-1 text-sm text-red-700" aria-live="polite">
           {errorMsg}
@@ -77,27 +76,25 @@ export default function ErpIndexBannerPage() {
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-          <h3 className="mb-2 text-sm font-semibold text-gray-800">미리보기</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-800">{t("erp.theme.banner.preview")}</h3>
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="banner-gingham py-2.5 text-center text-xs font-medium text-[var(--pink-deep)]">
               {form.ko || DEFAULT_INDEX_BANNER.ko}
             </div>
             <div className="bg-gray-50 px-3 py-6 text-center text-[10px] text-gray-400">
-              헤더 · 검색 · 메뉴 영역
+              {t("erp.theme.banner.previewArea")}
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-gray-500">
-            실제 색상·폰트는 적용 중인 테마에 따라 달라집니다.
-          </p>
+          <p className="mt-2 text-[11px] text-gray-500">{t("erp.theme.banner.previewNote")}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-          <h3 className="mb-2 text-sm font-semibold text-gray-800">문구 편집</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-800">{t("erp.theme.banner.editTitle")}</h3>
           <div className="space-y-3">
             {LOCALES.map(({ code, label }) => (
               <label key={code} className="block text-sm">
                 <span className="mb-1 block text-xs font-medium text-gray-600">
-                  {LOCALE_LABEL[code] ?? label}
+                  {LOCALE_LABEL_KEY[code] ? t(LOCALE_LABEL_KEY[code]) : label}
                 </span>
                 <input
                   type="text"
@@ -118,7 +115,7 @@ export default function ErpIndexBannerPage() {
               onClick={() => setForm({ ...DEFAULT_INDEX_BANNER })}
               className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
             >
-              기본값 복원
+              {t("erp.theme.banner.restoreDefault")}
             </button>
             <button
               type="button"
@@ -126,7 +123,7 @@ export default function ErpIndexBannerPage() {
               onClick={save}
               className="rounded-lg bg-[#1e293b] px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {loading ? "저장 중…" : "저장"}
+              {loading ? t("erp.common.saving") : t("erp.common.save")}
             </button>
           </ErpFormActions>
         </div>

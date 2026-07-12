@@ -2,6 +2,15 @@
   "name": "dayeon-web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "optionalDependencies": {
+    "@emnapi/runtime": "1.11.2",
+    "@types/markdown-it": "14.1.2",
+    "acorn": "8.17.0",
+    "markdown-it": "14.3.0"
+  },
   "scripts": {
     "dev": "next dev -p 3605",
     "build": "next build",

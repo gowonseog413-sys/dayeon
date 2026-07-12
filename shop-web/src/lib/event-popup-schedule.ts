@@ -1,3 +1,4 @@
+import { translate, type Locale } from "@/i18n/messages";
 import type { EventPopup } from "@/lib/types";
 
 export const POPUP_TIMEZONES = {
@@ -84,6 +85,8 @@ export function formatEventSchedule(
   return `${startDate} ${startTime} ~ ${endDate} ${endTime} (${label})`;
 }
 
-export function timezoneLabel(tz: PopupTimezone) {
-  return tz === POPUP_TIMEZONES.ID ? "인도네시아(WIB)" : "한국(KST)";
+export function timezoneLabel(tz: PopupTimezone, locale: Locale = "ko") {
+  return tz === POPUP_TIMEZONES.ID
+    ? translate(locale, "erp.theme.popups.tzIndonesia")
+    : translate(locale, "erp.theme.popups.tzKorea");
 }

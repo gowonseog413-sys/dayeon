@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 
 type Props = {
   href: string;
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function ErpDashboardStatCard({ href, label, value, accent = "#e11d8f" }: Props) {
+  const { t } = useI18n();
   const ref = useRef<HTMLAnchorElement>(null);
   const [motion, setMotion] = useState({ transform: "", glow: "50% 50%" });
 
@@ -57,7 +59,7 @@ export function ErpDashboardStatCard({ href, label, value, accent = "#e11d8f" }:
         {value}
       </p>
       <p className="mt-2 text-[10px] font-medium text-gray-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-        클릭하여 이동 →
+        {t("erp.dashboard.clickToNavigate")}
       </p>
     </Link>
   );

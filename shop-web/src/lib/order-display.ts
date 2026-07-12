@@ -1,3 +1,4 @@
+import { translate, type Locale } from "@/i18n/messages";
 import type { Order } from "@/lib/types";
 
 /** 쇼핑몰 내 주문 목록 */
@@ -18,46 +19,37 @@ export const TRACKING_CARRIERS = [
   "기타",
 ] as const;
 
-export function orderStatusLabel(status: string): string {
-  switch (status) {
-    case "pending":
-      return "결제·발송 대기";
-    case "shipped":
-      return "배송 중";
-    case "completed":
-      return "배송 완료";
-    case "cancelled":
-      return "취소됨";
-    default:
-      return status;
-  }
+export function orderStatusLabel(status: string, locale: Locale = "ko"): string {
+  const keys: Record<string, string> = {
+    pending: "erp.orders.statusPending",
+    shipped: "erp.orders.statusShipped",
+    completed: "erp.orders.statusCompleted",
+    cancelled: "erp.orders.statusCancelled",
+  };
+  const key = keys[status];
+  return key ? translate(locale, key) : status;
 }
 
-export function paymentStatusLabel(status?: string): string {
-  switch (status) {
-    case "paid":
-      return "결제 완료";
-    case "cancelled":
-      return "결제 취소";
-    case "pending":
-    default:
-      return "결제 대기";
-  }
+export function paymentStatusLabel(status?: string, locale: Locale = "ko"): string {
+  const keys: Record<string, string> = {
+    paid: "erp.orders.paymentPaid",
+    cancelled: "erp.orders.paymentCancelled",
+    pending: "erp.orders.paymentPending",
+  };
+  const key = keys[status || "pending"] ?? "erp.orders.paymentPending";
+  return translate(locale, key);
 }
 
-export function returnStatusLabel(status?: string | null): string {
-  switch (status) {
-    case "requested":
-      return "반품 접수";
-    case "approved":
-      return "반품 승인";
-    case "completed":
-      return "반품 완료";
-    case "rejected":
-      return "반품 거절";
-    default:
-      return "";
-  }
+export function returnStatusLabel(status?: string | null, locale: Locale = "ko"): string {
+  if (!status) return "";
+  const keys: Record<string, string> = {
+    requested: "erp.orders.returnRequested",
+    approved: "erp.orders.returnApproved",
+    completed: "erp.orders.returnCompleted",
+    rejected: "erp.orders.returnRejected",
+  };
+  const key = keys[status];
+  return key ? translate(locale, key) : status;
 }
 
 export function canCancelOrder(order: Order): boolean {
@@ -96,15 +88,17 @@ export function isActiveReturn(order: Order): boolean {
   return order.returnStatus === "requested" || order.returnStatus === "approved";
 }
 
-export function erpOrderTabDescription(tab: ErpOrderTab): string {
-  switch (tab) {
-    case "incoming":
-      return "신규 접수 주문만 표시됩니다. 발송 처리 시 주문배송 탭으로 이동합니다.";
-    case "shipping":
-      return "발송 처리된 주문의 배송 추적·배송 완료를 관리합니다.";
-    case "returns":
-      return "반품 접수·승인·완료 처리 중인 주문입니다.";
-    case "closed":
-      return "반품 없이 마무리된 배송 완료 주문입니다.";
-  }
+export function erpOrderTabDescription(tab: ErpOrderTab, locale: Locale = "ko"): string {
+  const keys: Record<ErpOrderTab, string> = {
+    incoming: "erp.orders.tabDesc.incoming",
+    shipping: "erp.orders.tabDesc.shipping",
+    returns: "erp.orders.tabDesc.returns",
+    closed: "erp.orders.tabDesc.closed",
+  };
+  return translate(locale, keys[tab]);
+}
+
+export function trackingCarrierLabel(carrier: string, locale: Locale = "ko"): string {
+  if (carrier === "기타") return translate(locale, "erp.orders.carrierOther");
+  return carrier;
 }

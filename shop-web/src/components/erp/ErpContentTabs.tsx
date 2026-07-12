@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/components/I18nProvider";
 type Tab = {
   id: string;
   label: string;
@@ -14,8 +15,10 @@ type Props = {
 
 /** 본문 상단 인라인 탭 — 하단문서 연혁 탭과 동일한 둥근 테두리 스타일 */
 export function ErpContentTabs({ tabs, active, onChange, className = "" }: Props) {
+  const { t } = useI18n();
+
   return (
-    <nav className={className} aria-label="페이지 탭">
+    <nav className={className} aria-label={t("erp.contentTabs.ariaLabel")}>
       <ul className="flex flex-wrap gap-2">
         {tabs.map((tab) => {
           const isActive = tab.id === active;

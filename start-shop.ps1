@@ -45,7 +45,7 @@ Write-Host "[4/4] 서버 시작..."
 Write-Host ""
 Write-Host "  쇼핑몰:  http://localhost:3600" -ForegroundColor Green
 Write-Host "  API:     http://localhost:3601" -ForegroundColor Green
-Write-Host "  ERP:     http://localhost:3600/erp (admin@eyesight.local / admin1234)" -ForegroundColor Yellow
+Write-Host "  ERP:     http://localhost:3600/erp (dayeon@naver.com / admin1004)" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  (3010은 다른 앱 — dayeon 쇼핑몰은 3600)" -ForegroundColor DarkGray
 Write-Host ""

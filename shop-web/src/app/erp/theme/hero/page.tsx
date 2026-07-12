@@ -2,13 +2,14 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { ErpFormActions } from "@/components/erp/ErpFormActions";
 import { ErpImageUpload } from "@/components/erp/ErpImageUpload";
 import { ErpPageShell } from "@/components/erp/ErpPageShell";
 import { useErpSaveSuccess } from "@/components/erp/ErpSaveSuccessProvider";
 import { NatePagination } from "@/components/NatePagination";
 import { api } from "@/lib/api";
-import { getToken } from "@/lib/auth-store";
+import { getErpToken } from "@/lib/auth-store";
 import {
   emptyHeroSlide,
   HERO_BANNER_MAX,
@@ -42,10 +43,19 @@ function SlideEditor({
   canMoveUp: boolean;
   canMoveDown: boolean;
 }) {
+  const { t, tFmt } = useI18n();
+  const linkOptions = [
+    ["none", "erp.theme.hero.linkNone"],
+    ["url", "erp.theme.hero.linkUrl"],
+    ["product", "erp.theme.hero.linkProduct"],
+  ] as const;
+
   return (
     <div className="rounded-xl border border-pink-100 bg-pink-50/30 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-gray-800">배너 {index + 1}</p>
+        <p className="text-sm font-semibold text-gray-800">
+          {tFmt("erp.theme.hero.bannerN", { n: index + 1 })}
+        </p>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <button
             type="button"
@@ -64,39 +74,33 @@ function SlideEditor({
             ↓
           </button>
           <button type="button" onClick={onRemove} className="text-red-500 hover:underline">
-            삭제
+            {t("erp.common.delete")}
           </button>
         </div>
       </div>
 
       <ErpImageUpload
         variant="hero"
-        label="히어로 배너 이미지 (21:7)"
+        label={t("erp.theme.hero.imageLabel")}
         value={slide.image}
         onChange={(url) => onChange({ image: url })}
       />
 
       <label className="mt-3 block text-sm">
-        <span className="mb-1 block text-xs text-gray-600">대체 텍스트 (alt)</span>
+        <span className="mb-1 block text-xs text-gray-600">{t("erp.theme.hero.altLabel")}</span>
         <input
           type="text"
           value={slide.alt}
           onChange={(e) => onChange({ alt: e.target.value })}
-          placeholder="배너 설명"
+          placeholder={t("erp.theme.hero.altPlaceholder")}
           className="w-full rounded border px-3 py-2 text-sm"
         />
       </label>
 
       <fieldset className="mt-3">
-        <legend className="mb-2 text-xs font-medium text-gray-600">클릭 시 동작</legend>
+        <legend className="mb-2 text-xs font-medium text-gray-600">{t("erp.theme.hero.clickAction")}</legend>
         <div className="flex flex-wrap gap-3 text-sm">
-          {(
-            [
-              ["none", "링크 없음"],
-              ["url", "외부 URL"],
-              ["product", "상품 페이지"],
-            ] as const
-          ).map(([value, label]) => (
+          {linkOptions.map(([value, labelKey]) => (
             <label key={value} className="flex cursor-pointer items-center gap-1.5">
               <input
                 type="radio"
@@ -110,7 +114,7 @@ function SlideEditor({
                   })
                 }
               />
-              {label}
+              {t(labelKey)}
             </label>
           ))}
         </div>
@@ -119,7 +123,7 @@ function SlideEditor({
       {slide.linkType === "url" && (
         <div className="mt-3 space-y-2">
           <label className="block text-sm">
-            <span className="mb-1 block text-xs text-gray-600">URL 주소</span>
+            <span className="mb-1 block text-xs text-gray-600">{t("erp.theme.hero.urlLabel")}</span>
             <input
               type="text"
               value={slide.url}
@@ -134,30 +138,39 @@ function SlideEditor({
               checked={slide.openInNewTab}
               onChange={(e) => onChange({ openInNewTab: e.target.checked })}
             />
-            새 창에서 열기
+            {t("erp.theme.hero.openNewTab")}
           </label>
         </div>
       )}
 
       {slide.linkType === "product" && (
         <label className="mt-3 block text-sm">
-          <span className="mb-1 block text-xs text-gray-600">연결 상품</span>
+          <span className="mb-1 block text-xs text-gray-600">{t("erp.theme.hero.productLabel")}</span>
           <select
             value={slide.productId}
             onChange={(e) => onChange({ productId: e.target.value })}
             className="w-full rounded border px-3 py-2 text-sm"
           >
-            <option value="">상품 선택</option>
+            <option value="">{t("erp.theme.hero.selectProduct")}</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.brand} — {p.name}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-[10px] text-gray-500">같은 창에서 상품 상세 페이지로 이동합니다.</p>
+          <p className="mt-1 text-[10px] text-gray-500">{t("erp.theme.hero.productHint")}</p>
         </label>
       )}
     </div>
+  );
+}
+
+function ThemeHeroLoadingFallback() {
+  const { t } = useI18n();
+  return (
+    <ErpPageShell titleKey="erp.nav.themeHero">
+      <p className="text-sm text-gray-500">{t("erp.common.loading")}</p>
+    </ErpPageShell>
   );
 }
 
@@ -165,6 +178,7 @@ function ErpHeroBannersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+  const { t, tFmt } = useI18n();
 
   const [slides, setSlides] = useState<HeroBannerSlide[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -177,9 +191,9 @@ function ErpHeroBannersContent() {
     try {
       const [bannerData, productData] = await Promise.all([
         api<{ heroBanners: HeroBannerSlide[] }>("/api/admin/settings/hero-banners", {
-          token: getToken(),
+          token: getErpToken(),
         }),
-        api<{ products: Product[] }>("/api/admin/products", { token: getToken() }),
+        api<{ products: Product[] }>("/api/admin/products", { token: getErpToken() }),
       ]);
       setSlides(normalizeHeroBanners(bannerData.heroBanners).map((s) => ({ ...s })));
       setProducts(productData.products);
@@ -250,7 +264,7 @@ function ErpHeroBannersContent() {
         "/api/admin/settings/hero-banners",
         {
           method: "PATCH",
-          token: getToken(),
+          token: getErpToken(),
           body: JSON.stringify({ heroBanners: payload }),
         },
       );
@@ -258,28 +272,21 @@ function ErpHeroBannersContent() {
       setSlides(next.map((s) => ({ ...s })));
       publishHeroBannersUpdate(next);
       showSaveSuccess({
-        subMessage: "히어로 배너가 쇼핑몰 메인에 실시간 반영됩니다.",
+        subMessage: t("erp.theme.hero.savedSub"),
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "저장에 실패했습니다.");
+      setErrorMsg(err instanceof Error ? err.message : t("erp.common.saveFailed"));
     } finally {
       setLoading(false);
     }
   }
 
   if (initialLoading) {
-    return (
-      <ErpPageShell title="히어로배너">
-        <p className="text-sm text-gray-500">불러오는 중…</p>
-      </ErpPageShell>
-    );
+    return <ThemeHeroLoadingFallback />;
   }
 
   return (
-    <ErpPageShell
-      title="히어로배너"
-      description="쇼핑몰 메인 상단 큰 캐러셀 배너를 관리합니다. 순서·이미지·클릭 링크(외부 URL 또는 상품)를 설정할 수 있습니다."
-    >
+    <ErpPageShell titleKey="erp.nav.themeHero" descriptionKey="erp.theme.hero.description">
       {errorMsg ? (
         <p
           className="mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-sm text-red-700"
@@ -291,16 +298,19 @@ function ErpHeroBannersContent() {
 
       <div className="mb-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600">
         <p>
-          · 최대 {HERO_BANNER_MAX}장 · {HERO_BANNER_PAGE_SIZE}건씩 · ↑↓ 버튼으로 슬라이드 순서 변경
+          {tFmt("erp.theme.hero.hintMax", {
+            max: HERO_BANNER_MAX,
+            pageSize: HERO_BANNER_PAGE_SIZE,
+          })}
         </p>
-        <p>· 외부 URL: 새 창/같은 창 선택 가능 · 상품: 쇼핑몰 상품 상세로 이동</p>
-        <p>· 이미지는 21:7 비율로 자동 크롭·WebP 변환</p>
+        <p>{t("erp.theme.hero.hintLinks")}</p>
+        <p>{t("erp.theme.hero.hintCrop")}</p>
       </div>
 
       <div className="space-y-3">
         {slides.length === 0 ? (
           <p className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-gray-500">
-            등록된 배너가 없습니다. 아래에서 추가하세요.
+            {t("erp.theme.hero.noBanners")}
           </p>
         ) : (
           <>
@@ -335,7 +345,7 @@ function ErpHeroBannersContent() {
           onClick={addSlide}
           className="rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-600 hover:border-[var(--pink-accent)] hover:text-[var(--pink-accent)] disabled:opacity-50"
         >
-          + 배너 추가
+          {t("erp.theme.hero.addBanner")}
         </button>
         <ErpFormActions>
           <button
@@ -343,7 +353,7 @@ function ErpHeroBannersContent() {
             onClick={load}
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
           >
-            새로고침
+            {t("erp.common.refresh")}
           </button>
           <button
             type="button"
@@ -351,7 +361,7 @@ function ErpHeroBannersContent() {
             onClick={save}
             className="rounded-lg bg-[#1e293b] px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {loading ? "저장 중…" : "저장"}
+            {loading ? t("erp.common.saving") : t("erp.common.save")}
           </button>
         </ErpFormActions>
       </div>
@@ -361,13 +371,7 @@ function ErpHeroBannersContent() {
 
 export default function ErpHeroBannersPage() {
   return (
-    <Suspense
-      fallback={
-        <ErpPageShell title="히어로배너">
-          <p className="text-sm text-gray-500">불러오는 중…</p>
-        </ErpPageShell>
-      }
-    >
+    <Suspense fallback={<ThemeHeroLoadingFallback />}>
       <ErpHeroBannersContent />
     </Suspense>
   );

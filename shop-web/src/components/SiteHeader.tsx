@@ -10,9 +10,10 @@ import {
   isMegaMenuMain,
   treeMainToMegaItems,
   treeMainToSimpleItems,
-  useShopCatalog,
+  useLocalizedShopCatalog,
 } from "@/lib/use-shop-catalog";
 import { useAuth } from "@/hooks/useAuth";
+import { AUTH_UPDATED_EVENT } from "@/lib/auth-store";
 import { cartCount } from "@/lib/cart-store";
 import { DayeonLogo } from "@/components/DayeonLogo";
 import { NavMegaMenu } from "@/components/NavMegaMenu";
@@ -47,7 +48,7 @@ import { navItemLinkClass } from "@/lib/nav-item-class";
 
 export function SiteHeader() {
   const pathname = usePathname();
-  if (pathname.startsWith("/erp")) return null;
+  if (pathname.startsWith("/erp") || pathname.startsWith("/admin-gate")) return null;
   return <SiteHeaderInner />;
 }
 
@@ -91,19 +92,21 @@ function SiteHeaderInner() {
   const [bag, setBag] = useState(0);
   const [q, setQ] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const { catalog } = useShopCatalog();
+  const { catalog } = useLocalizedShopCatalog();
 
   useEffect(() => {
     setHydrated(true);
-    setBag(cartCount());
-    const refresh = () => setBag(cartCount());
+    const refresh = () => setBag(user ? cartCount() : 0);
+    refresh();
     window.addEventListener("cart-updated", refresh);
     window.addEventListener("storage", refresh);
+    window.addEventListener(AUTH_UPDATED_EVENT, refresh);
     return () => {
       window.removeEventListener("cart-updated", refresh);
       window.removeEventListener("storage", refresh);
+      window.removeEventListener(AUTH_UPDATED_EVENT, refresh);
     };
-  }, []);
+  }, [user]);
 
   const accountHref = hydrated && user ? "/profile" : "/login";
   const accountLabel =
